@@ -1,7 +1,4 @@
-可以，下面这份可以直接交给 Codex 作为开发任务。技术基准建议使用 Obsidian 官方 sample plugin 作为项目脚手架；Obsidian 插件开发主要使用 TypeScript，官方 API 中也有 `Modal`、`ItemView`、`PluginSettingTab` 等适合本插件的 UI 基础类。([GitHub][1])
-另外，涉及修改 frontmatter 时，优先使用 Obsidian 官方推荐的 `FileManager.processFrontMatter()`，不要手写 YAML 解析与覆盖，以避免破坏用户原有笔记。([Developer Documentation][2])
-
----
+术基准建议使用 Obsidian 官方 sample plugin 作为项目脚手架；Obsidian 插件开发主要使用 TypeScript，官方 API 中也有 `Modal`、`ItemView`、`PluginSettingTab` 等适合本插件的 UI 基础类。([GitHub][1])
 
 # Obsidian 插件开发 Spec：Everyday / 每日一格
 
@@ -34,16 +31,8 @@
 1. 快速记录弹窗
 2. Markdown 日记文件创建 / 更新
 3. 月度看板视图
-4. 点击某天可以新增、修改或打开对应日记
-5. 插件设置页
+4. 插件设置页
 6. 基础样式
-
-### 暂不实现
-
-1. 年度总览
-2. 复杂统计图
-3. 心情趋势分析
-4. 移动端专门优化
 
 ---
 
@@ -66,6 +55,7 @@ Everyday
 ```text
 Quickly capture one sentence and one mood for each day, then review your memories in a monthly board.
 ```
+
 
 ---
 
@@ -95,41 +85,40 @@ Diary/
 Diary/2026/2026-05-14.md
 ```
 
-用户可以在设置中修改日记目录。
+用户可以在设置中修改日记目录和日记名称。
+
+---
 
 ---
 
 ### 4.3 单篇日记格式
 
-新建日记时，使用以下格式：
-
+1. 用户可以在设置中指定他自己的日记模板文件路径，插件会读取这个模板文件的内容，并用它来生成新的日记文件。
+2. 如果用户没有指定模板文件，插件会使用内置的默认模板：首先插入YAML Front Matter.
+3. 如果用户指定了模板文件，插件会首先检查模板文件中是否包含YAML Front Matter，如果没有，插件会自动在生成的日记文件开头添加默认的YAML Front Matter。如果模板文件中已经包含YAML Front Matter，插件会保留模板中的YAML Front Matter，并在其后添加以下YAML Foront Matter。
 ```markdown
+
+YAML Front Matter:
 ---
-Everyday: true
-date: 2026-05-14
 mood: normal
 mood_label: 普通
 mood_emoji: 😐
 mood_score: 3
 summary: 今天完成了 AAC 量化模块的重构，但还有些地方没想清楚。
-created_at: 2026-05-14T21:30:00
-updated_at: 2026-05-14T21:30:00
 ---
 
-# 2026-05-14
+在日记正文部分插入以下内容：（用户可以在设置中修改这些内容，这个功能在MVP阶段可以先不实现）
 
+```markdown
 <!-- Everyday:start -->
-## 一句话
+# 一句话
 
 😐 今天完成了 AAC 量化模块的重构，但还有些地方没想清楚。
 <!-- Everyday:end -->
 
-## 随记
-
 ```
 
 ---
-
 ### 4.4 更新已有日记的规则
 
 当目标日期的日记已经存在时：
@@ -209,8 +198,6 @@ updated_at: 2026-05-14T21:30:00
 ```
 
 MVP 阶段可以先不支持用户自定义心情，但设置结构中要预留 `moods` 数组。
-
----
 
 ## 6. 插件设置
 
@@ -316,6 +303,7 @@ Capture yesterday's diary
 
 用户打开弹窗后，可以在 10 秒内完成记录。
 
+
 ### 9.2 弹窗内容
 
 字段：
@@ -328,7 +316,7 @@ Capture yesterday's diary
 2. 一句话输入框
 
    * 使用 textarea
-   * placeholder 示例：`今天最重要的一件事是什么？`
+   * placeholder 示例：`今天怎么样？`
 
 3. 心情选择按钮
 
@@ -367,7 +355,6 @@ Capture yesterday's diary
    * 新建成功：`Diary saved`
    * 更新成功：`Diary updated`
 5. 刷新已打开的月度看板。
-
 ---
 
 ## 10. 月度记忆看板
@@ -405,6 +392,7 @@ class MonthMemoryView extends ItemView
 
 ---
 
+
 ### 10.3 默认展示模式：列表模式
 
 优先实现列表模式，因为它最接近用户原始手帐需求。
@@ -431,6 +419,7 @@ MAY 2026
 5. 记录状态
 
 ---
+
 
 ### 10.4 未记录日期
 
@@ -486,42 +475,28 @@ MVP 可以先只完成列表模式。
 
 ---
 
-## 11. 数据读取逻辑
 
-### 11.1 读取某个月的数据
+### 10.6 可选展示模式：日历格子模式
 
-输入：
+如果时间允许，实现 calendar 模式：
 
-```ts
-year: number
-month: number // 1-12
+```text
+Mon      Tue      Wed      Thu      Fri      Sat      Sun
+                  1 🙂     2 😐     3 😄
+4 😔     5 🙂     6       7 😫     8 😐     9 😄     10 🙂
+...
 ```
 
-输出：
+每个格子显示：
 
-```ts
-interface DiaryEntry {
-  date: string;          // YYYY-MM-DD
-  filePath: string;
-  exists: boolean;
-  mood?: string;
-  moodLabel?: string;
-  moodEmoji?: string;
-  moodScore?: number;
-  summary?: string;
-}
-```
+1. 日期数字
+2. 心情 emoji
+3. summary 前 20 个字符
 
-读取规则：
-
-1. 计算该月所有日期。
-2. 对每一天生成预期文件路径。
-3. 判断文件是否存在。
-4. 如果存在，读取 metadataCache 中的 frontmatter。
-5. 如果 frontmatter 中 `Everyday === true`，读取插件字段。
-6. 如果文件存在但没有插件字段，仍可显示为“已有笔记，但未记录一句话”。
+MVP 可以先只完成列表模式。
 
 ---
+
 
 ### 11.2 文件路径生成规则
 
@@ -550,6 +525,7 @@ function getDiaryFilePath(date: string, settings: EverydaySettings): string
 3. 自动创建缺失文件夹
 
 ---
+
 
 ## 12. 模块划分
 
@@ -601,6 +577,7 @@ package.json
 
 ---
 
+
 ### 12.2 DiaryStorageService
 
 核心方法：
@@ -635,6 +612,7 @@ interface SaveDiaryInput {
 
 ---
 
+
 ### 12.3 QuickCaptureModal
 
 职责：
@@ -660,6 +638,7 @@ class QuickCaptureModal extends Modal {
 ```
 
 ---
+
 
 ### 12.4 MonthMemoryView
 
@@ -689,6 +668,7 @@ refresh(): Promise<void>
 ```
 
 ---
+
 
 ## 13. 样式要求
 

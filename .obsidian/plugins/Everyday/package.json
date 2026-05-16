@@ -1,7 +1,7 @@
 {
-  "name": "everyday-diary",
+  "name": "everyday",
   "version": "0.1.0",
-  "description": "A minimal Obsidian diary plugin for generating daily notes.",
+  "description": "Quickly capture one sentence and one mood for each day in Obsidian.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",

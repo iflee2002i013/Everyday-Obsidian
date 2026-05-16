@@ -1,0 +1,10 @@
+{
+  "id": "Everyday",
+  "name": "Everyday",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Quickly capture one sentence and one mood for each day, then review your memories in a monthly board.",
+  "author": "Everyday",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}
