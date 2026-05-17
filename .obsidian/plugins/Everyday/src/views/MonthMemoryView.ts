@@ -125,12 +125,7 @@ export class MonthMemoryView extends ItemView {
     });
 
     const actions = header.createDiv({ cls: "Everyday-header-actions" });
-    const modeSwitch = actions.createDiv({
-      cls: "Everyday-mode-switch",
-      attr: { "aria-label": "月视图模式" }
-    });
-    this.renderModeButton(modeSwitch, "list", "列表");
-    this.renderModeButton(modeSwitch, "calendar", "日历");
+    this.renderModeToggleButton(actions);
 
     const todayButton = actions.createEl("button", { text: "今天" });
     todayButton.addEventListener("click", () => {
@@ -144,21 +139,19 @@ export class MonthMemoryView extends ItemView {
     captureButton.addEventListener("click", () => this.openCapture());
   }
 
-  private renderModeButton(container: HTMLElement, mode: MonthViewMode, label: string): void {
-    const isActive = this.getSettings().viewMode === mode;
+  private renderModeToggleButton(container: HTMLElement): void {
+    const currentMode = this.getSettings().viewMode;
+    const nextMode: MonthViewMode = currentMode === "calendar" ? "list" : "calendar";
+    const label = currentMode === "calendar" ? "列表" : "日历";
     const button = container.createEl("button", {
-      cls: `Everyday-mode-button${isActive ? " is-active" : ""}`,
+      cls: "Everyday-view-mode-toggle",
       text: label,
       attr: {
-        "aria-pressed": String(isActive)
+        "aria-label": `切换到${label}模式`
       }
     });
     button.addEventListener("click", async () => {
-      if (this.getSettings().viewMode === mode) {
-        return;
-      }
-
-      await this.changeViewMode(mode);
+      await this.changeViewMode(nextMode);
     });
   }
 

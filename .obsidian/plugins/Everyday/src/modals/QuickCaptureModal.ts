@@ -93,7 +93,7 @@ export class QuickCaptureModal extends Modal {
     if (this.loadedEntry?.exists && !this.loadedEntry.hasEverydayData) {
       formEl.createDiv({
         cls: "Everyday-form-hint",
-        text: "这一天已经有 Markdown 文件，但还没有 Everyday 一句话记录。保存时会只添加插件管理区域。"
+        text: "这一天已经有 Markdown 文件，但还没有 Everyday 一句话记录。保存时只会更新 YAML。"
       });
     }
 

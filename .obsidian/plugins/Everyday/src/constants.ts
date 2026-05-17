@@ -2,9 +2,6 @@ import type { EverydaySettings, MoodOption } from "./types";
 
 export const VIEW_TYPE_MONTH_MEMORY = "Everyday-month-view";
 
-export const EVERYDAY_BLOCK_START = "<!-- Everyday:start -->";
-export const EVERYDAY_BLOCK_END = "<!-- Everyday:end -->";
-
 export const DEFAULT_MOODS: MoodOption[] = [
   {
     id: "happy",

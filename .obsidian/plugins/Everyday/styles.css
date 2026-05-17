@@ -7,6 +7,7 @@
 .Everyday-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 18px;
@@ -20,35 +21,22 @@
   gap: 8px;
 }
 
+.Everyday-nav {
+  flex: 1 1 180px;
+}
+
+.Everyday-header-actions {
+  flex: 1 1 180px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .Everyday-current-month {
   min-width: 112px;
   color: var(--text-normal);
   font-size: 16px;
   font-weight: 650;
   text-align: center;
-}
-
-.Everyday-mode-switch {
-  display: inline-flex;
-  align-items: center;
-  overflow: hidden;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-}
-
-.Everyday-mode-button {
-  min-height: 30px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-muted);
-}
-
-.Everyday-mode-button.is-active {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
 }
 
 .Everyday-icon-button {

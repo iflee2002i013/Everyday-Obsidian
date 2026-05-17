@@ -1,13 +1,13 @@
 {
   "diaryFolder": "Diary",
   "useYearSubfolders": true,
-  "diaryNameMode": "custom",
+  "diaryNameMode": "daily-notes",
   "diaryNameFormat": "YYYY-MM-DD",
   "defaultMoodId": "normal",
   "weekStart": "monday",
   "openNoteAfterSave": false,
   "viewMode": "list",
-  "templateFilePath": "",
+  "templateFilePath": "日记模板.md",
   "moods": [
     {
       "id": "happy",

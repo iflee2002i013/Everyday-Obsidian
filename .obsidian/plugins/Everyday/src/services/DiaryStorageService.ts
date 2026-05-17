@@ -1,7 +1,7 @@
 import { App, Notice, TFile, TFolder } from "obsidian";
 import { DEFAULT_MOODS } from "../constants";
 import type { DailyNotesSettings, DiaryEntry, EverydaySettings, MoodOption, SaveDiaryInput } from "../types";
-import { applyTemplateVariables, buildManagedBlock, extractSummaryFromManagedBlock, updateManagedBlock } from "../utils/markdown";
+import { applyTemplateVariables } from "../utils/markdown";
 import { getDiaryFilePath, getDiaryFolderPathFromFilePath, normalizeVaultPath } from "../utils/path";
 import { DateService } from "./DateService";
 
@@ -36,10 +36,8 @@ export class DiaryStorageService {
     }
 
     const frontmatter = this.getFrontmatter(abstractFile);
-    const content = await this.app.vault.cachedRead(abstractFile);
     const hasLegacyData = hasLegacyPluginData(frontmatter);
-    const summaryFromBody = extractSummaryFromManagedBlock(content, this.settings.moods.map((mood) => mood.emoji));
-    const summary = summaryFromBody ?? readString(frontmatter, "summery") ?? (hasLegacyData ? readString(frontmatter, "summary") : undefined);
+    const summary = readString(frontmatter, "summary") ?? readString(frontmatter, "summery");
     const moodLabel = readString(frontmatter, "mood_label");
     const moodEmoji = readString(frontmatter, "mood_emoji");
     const mood = this.getMoodIdFromFrontmatter(frontmatter, moodLabel, moodEmoji);
@@ -88,13 +86,12 @@ export class DiaryStorageService {
       file = abstractFile;
     } else {
       await this.ensureDiaryFolder(input.date);
-      const initialContent = await this.buildInitialContent(input.date, summary, mood);
+      const initialContent = await this.buildInitialContent(input.date);
       file = await this.app.vault.create(filePath, initialContent);
       created = true;
     }
 
     await this.writeFrontmatter(file, input.date, summary, mood);
-    await this.writeManagedBlock(file, summary, mood);
 
     return {
       date: input.date,
@@ -129,17 +126,14 @@ export class DiaryStorageService {
     );
   }
 
-  private async buildInitialContent(date: string, summary: string, mood: MoodOption): Promise<string> {
+  private async buildInitialContent(date: string): Promise<string> {
     const templateContent = await this.readTemplateContent();
-    const block = buildManagedBlock(summary, mood);
 
     if (templateContent !== undefined) {
-      return updateManagedBlock(applyTemplateVariables(templateContent, date), block);
+      return applyTemplateVariables(templateContent, date);
     }
 
     return `# ${date}
-
-${block}
 
 ## 随记
 
@@ -171,27 +165,18 @@ ${block}
       delete frontmatter.Everyday;
       delete frontmatter.mood;
       delete frontmatter.mood_score;
+      delete frontmatter.summery;
 
       if (shouldRemoveLegacyFields) {
         delete frontmatter.date;
-        delete frontmatter.summary;
         delete frontmatter.created_at;
         delete frontmatter.updated_at;
       }
 
       frontmatter.mood_label = mood.label;
       frontmatter.mood_emoji = mood.emoji;
-      frontmatter.summery = summary;
+      frontmatter.summary = summary;
     });
-  }
-
-  private async writeManagedBlock(file: TFile, summary: string, mood: MoodOption): Promise<void> {
-    const content = await this.app.vault.read(file);
-    const nextContent = updateManagedBlock(content, buildManagedBlock(summary, mood));
-
-    if (nextContent !== content) {
-      await this.app.vault.modify(file, nextContent);
-    }
   }
 
   private async ensureFolderPath(folderPath: string): Promise<void> {
