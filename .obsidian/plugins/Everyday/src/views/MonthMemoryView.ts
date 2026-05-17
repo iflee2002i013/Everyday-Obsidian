@@ -143,14 +143,17 @@ export class MonthMemoryView extends ItemView {
         cls: this.getDayRowClass(entry),
         attr: {
           role: "button",
-          tabindex: "0"
+          tabindex: "0",
+          title: this.getPrimaryActionTitle(entry)
         }
       });
-      row.addEventListener("click", () => this.openCapture(entry.date));
+      row.addEventListener("click", () => {
+        void this.handlePrimaryAction(entry);
+      });
       row.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          this.openCapture(entry.date);
+          void this.handlePrimaryAction(entry);
         }
       });
 
@@ -172,15 +175,15 @@ export class MonthMemoryView extends ItemView {
       });
 
       if (entry.exists) {
-        const openButton = row.createEl("button", {
-          cls: "Everyday-open-note",
-          attr: { "aria-label": "打开日记" }
+        const editButton = row.createEl("button", {
+          cls: "Everyday-entry-action",
+          attr: { "aria-label": "编辑一句话" }
         });
-        openButton.title = "打开日记";
-        setIcon(openButton, "file-text");
-        openButton.addEventListener("click", (event) => {
+        editButton.title = "编辑一句话";
+        setIcon(editButton, "pencil");
+        editButton.addEventListener("click", (event) => {
           event.stopPropagation();
-          void this.storage.openDiaryFile(entry.date);
+          this.openCapture(entry.date);
         });
       }
     }
@@ -214,14 +217,17 @@ export class MonthMemoryView extends ItemView {
         cls: this.getCalendarCellClass(entry),
         attr: {
           role: "button",
-          tabindex: "0"
+          tabindex: "0",
+          title: this.getPrimaryActionTitle(entry)
         }
       });
-      cell.addEventListener("click", () => this.openCapture(entry.date));
+      cell.addEventListener("click", () => {
+        void this.handlePrimaryAction(entry);
+      });
       cell.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          this.openCapture(entry.date);
+          void this.handlePrimaryAction(entry);
         }
       });
 
@@ -276,7 +282,7 @@ export class MonthMemoryView extends ItemView {
     }
 
     if (entry.exists) {
-      return "已有笔记，未记录一句话";
+      return "已创建日记，点击记录一句话";
     }
 
     return "未记录";
@@ -284,5 +290,22 @@ export class MonthMemoryView extends ItemView {
 
   private truncate(value: string, maxLength: number): string {
     return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+  }
+
+  private async handlePrimaryAction(entry: DiaryEntry): Promise<void> {
+    if (entry.exists && entry.summary) {
+      await this.storage.openDiaryFile(entry.date);
+      return;
+    }
+
+    this.openCapture(entry.date);
+  }
+
+  private getPrimaryActionTitle(entry: DiaryEntry): string {
+    if (entry.exists && entry.summary) {
+      return "打开日记";
+    }
+
+    return "记录一句话";
   }
 }

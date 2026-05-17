@@ -37,19 +37,21 @@ export class DiaryStorageService {
 
     const frontmatter = this.getFrontmatter(abstractFile);
     const content = await this.app.vault.cachedRead(abstractFile);
-    const summary = readString(frontmatter, "summary") ?? extractSummaryFromManagedBlock(content);
-    const mood = readString(frontmatter, "mood");
+    const hasLegacyData = hasLegacyPluginData(frontmatter);
+    const summary = readString(frontmatter, "summery") ?? (hasLegacyData ? readString(frontmatter, "summary") : undefined) ?? extractSummaryFromManagedBlock(content);
+    const moodLabel = readString(frontmatter, "mood_label");
+    const moodEmoji = readString(frontmatter, "mood_emoji");
+    const mood = this.getMoodIdFromFrontmatter(frontmatter, moodLabel, moodEmoji);
 
     return {
       date,
       filePath,
       exists: true,
       mood,
-      moodLabel: readString(frontmatter, "mood_label"),
-      moodEmoji: readString(frontmatter, "mood_emoji"),
-      moodScore: readNumber(frontmatter, "mood_score"),
+      moodLabel,
+      moodEmoji,
       summary,
-      hasEverydayData: readBoolean(frontmatter, "Everyday") || Boolean(summary || mood)
+      hasEverydayData: Boolean(summary || hasLegacyData)
     };
   }
 
@@ -100,7 +102,6 @@ export class DiaryStorageService {
       mood: mood.id,
       moodLabel: mood.label,
       moodEmoji: mood.emoji,
-      moodScore: mood.score,
       summary,
       hasEverydayData: true,
       created
@@ -162,23 +163,24 @@ ${block}
     return this.app.vault.cachedRead(templateFile);
   }
 
-  private async writeFrontmatter(file: TFile, date: string, summary: string, mood: MoodOption): Promise<void> {
-    const now = new Date().toISOString();
-
+  private async writeFrontmatter(file: TFile, _date: string, summary: string, mood: MoodOption): Promise<void> {
     await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-      frontmatter.Everyday = true;
-      frontmatter.date = date;
-      frontmatter.mood = mood.id;
-      frontmatter.mood_label = mood.label;
-      frontmatter.mood_emoji = mood.emoji;
-      frontmatter.mood_score = mood.score;
-      frontmatter.summary = summary;
+      const shouldRemoveLegacyFields = hasLegacyPluginData(frontmatter);
 
-      if (!frontmatter.created_at) {
-        frontmatter.created_at = now;
+      delete frontmatter.Everyday;
+      delete frontmatter.mood;
+      delete frontmatter.mood_score;
+
+      if (shouldRemoveLegacyFields) {
+        delete frontmatter.date;
+        delete frontmatter.summary;
+        delete frontmatter.created_at;
+        delete frontmatter.updated_at;
       }
 
-      frontmatter.updated_at = now;
+      frontmatter.mood_label = mood.label;
+      frontmatter.mood_emoji = mood.emoji;
+      frontmatter.summery = summary;
     });
   }
 
@@ -214,6 +216,20 @@ ${block}
   private getFrontmatter(file: TFile): Record<string, unknown> | undefined {
     return this.app.metadataCache.getFileCache(file)?.frontmatter as Record<string, unknown> | undefined;
   }
+
+  private getMoodIdFromFrontmatter(
+    frontmatter: Record<string, unknown> | undefined,
+    moodLabel: string | undefined,
+    moodEmoji: string | undefined
+  ): string | undefined {
+    const legacyMoodId = readString(frontmatter, "mood");
+
+    if (legacyMoodId && this.settings.moods.some((mood) => mood.id === legacyMoodId)) {
+      return legacyMoodId;
+    }
+
+    return this.settings.moods.find((mood) => mood.label === moodLabel || mood.emoji === moodEmoji)?.id;
+  }
 }
 
 function readString(frontmatter: Record<string, unknown> | undefined, key: string): string | undefined {
@@ -221,11 +237,17 @@ function readString(frontmatter: Record<string, unknown> | undefined, key: strin
   return typeof value === "string" ? value : undefined;
 }
 
-function readNumber(frontmatter: Record<string, unknown> | undefined, key: string): number | undefined {
-  const value = frontmatter?.[key];
-  return typeof value === "number" ? value : undefined;
-}
+function hasLegacyPluginData(frontmatter: Record<string, unknown> | undefined): boolean {
+  if (!frontmatter) {
+    return false;
+  }
 
-function readBoolean(frontmatter: Record<string, unknown> | undefined, key: string): boolean {
-  return frontmatter?.[key] === true;
+  return (
+    frontmatter.Everyday === true ||
+    typeof frontmatter.mood_score === "number" ||
+    (
+      typeof frontmatter.mood === "string" &&
+      (typeof frontmatter.summary === "string" || typeof frontmatter.mood_label === "string" || typeof frontmatter.mood_emoji === "string")
+    )
+  );
 }

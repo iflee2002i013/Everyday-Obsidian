@@ -14,7 +14,7 @@ Everyday 是一个 Obsidian 一句话日记插件。它用快速弹窗记录每�
 
 弹窗包含日期、一句话、心情选择，以及“保存”“保存并打开日记”“取消”。如果所选日期已经有日记，弹窗会读取 frontmatter 中的 `summary` 和 `mood` 并预填。
 
-保存时会创建或更新对应日期的 Markdown 文件。已有文件不会被整体覆盖，只会更新 frontmatter 和 `<!-- Everyday:start -->` 到 `<!-- Everyday:end -->` 之间的插件管理区域。
+保存时会创建或更新对应日期的 Markdown 文件。已有文件不会被整体覆盖，只会更新 frontmatter 和正文中的 `## 一句话` 小节。
 
 ## 文件格式
 
@@ -34,24 +34,16 @@ Diary/2026-05-14.md
 
 ```markdown
 ---
-Everyday: true
-date: 2026-05-14
-mood: normal
 mood_label: 普通
 mood_emoji: 😐
-mood_score: 3
-summary: 今天完成了一个小目标。
-created_at: 2026-05-14T21:30:00.000Z
-updated_at: 2026-05-14T21:30:00.000Z
+summery: 今天完成了一个小目标。
 ---
 
 # 2026-05-14
 
-<!-- Everyday:start -->
 ## 一句话
 
 😐 今天完成了一个小目标。
-<!-- Everyday:end -->
 
 ## 随记
 ```

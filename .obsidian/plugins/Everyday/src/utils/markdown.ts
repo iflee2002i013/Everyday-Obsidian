@@ -2,11 +2,9 @@ import { EVERYDAY_BLOCK_END, EVERYDAY_BLOCK_START } from "../constants";
 import type { MoodOption } from "../types";
 
 export function buildManagedBlock(summary: string, mood: MoodOption): string {
-  return `${EVERYDAY_BLOCK_START}
-## 一句话
+  return `## 一句话
 
-${mood.emoji} ${summary.trim()}
-${EVERYDAY_BLOCK_END}`;
+${mood.emoji} ${summary.trim()}`;
 }
 
 export function updateManagedBlock(content: string, block: string): string {
@@ -25,6 +23,14 @@ export function updateManagedBlock(content: string, block: string): string {
     return `${content.slice(0, startIndex)}${replacement}${after}`;
   }
 
+  const sectionRange = getOneSentenceSectionRange(content);
+
+  if (sectionRange) {
+    const before = content.slice(0, sectionRange.start);
+    const after = content.slice(sectionRange.end).replace(/^\r?\n+/, "");
+    return `${before}${block.trimEnd()}${after.length > 0 ? `\n\n${after}` : "\n"}`;
+  }
+
   return insertManagedBlock(content, block);
 }
 
@@ -32,17 +38,17 @@ export function extractSummaryFromManagedBlock(content: string): string | undefi
   const startIndex = content.indexOf(EVERYDAY_BLOCK_START);
   const endIndex = startIndex >= 0 ? content.indexOf(EVERYDAY_BLOCK_END, startIndex) : -1;
 
-  if (startIndex < 0 || endIndex < 0) {
+  if (startIndex >= 0 && endIndex >= 0) {
+    return readSummaryFromBlock(content.slice(startIndex + EVERYDAY_BLOCK_START.length, endIndex));
+  }
+
+  const sectionRange = getOneSentenceSectionRange(content);
+
+  if (!sectionRange) {
     return undefined;
   }
 
-  const blockContent = content
-    .slice(startIndex + EVERYDAY_BLOCK_START.length, endIndex)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#"));
-
-  return blockContent[0];
+  return readSummaryFromBlock(content.slice(sectionRange.start, sectionRange.end));
 }
 
 export function applyTemplateVariables(content: string, date: string): string {
@@ -79,4 +85,46 @@ function insertManagedBlock(content: string, block: string): string {
 function getFrontmatterEnd(content: string): number {
   const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(content);
   return match ? match[0].length : 0;
+}
+
+function getOneSentenceSectionRange(content: string): { start: number; end: number } | undefined {
+  const headingRegex = /^#{1,6}\s+一句话\s*$/gm;
+  const headingMatch = headingRegex.exec(content);
+
+  if (!headingMatch) {
+    return undefined;
+  }
+
+  const level = headingMatch[0].match(/^#+/)?.[0].length ?? 2;
+  const afterHeadingIndex = headingMatch.index + headingMatch[0].length;
+  const nextHeadingRegex = /^#{1,6}\s+.+$/gm;
+  nextHeadingRegex.lastIndex = afterHeadingIndex;
+  let nextHeadingMatch = nextHeadingRegex.exec(content);
+
+  while (nextHeadingMatch) {
+    const nextLevel = nextHeadingMatch[0].match(/^#+/)?.[0].length ?? 6;
+
+    if (nextLevel <= level) {
+      return {
+        start: headingMatch.index,
+        end: nextHeadingMatch.index
+      };
+    }
+
+    nextHeadingMatch = nextHeadingRegex.exec(content);
+  }
+
+  return {
+    start: headingMatch.index,
+    end: content.length
+  };
+}
+
+function readSummaryFromBlock(blockContent: string): string | undefined {
+  const lines = blockContent
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
+
+  return lines[0];
 }

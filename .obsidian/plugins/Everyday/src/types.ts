@@ -28,7 +28,6 @@ export interface DiaryEntry {
   mood?: string;
   moodLabel?: string;
   moodEmoji?: string;
-  moodScore?: number;
   summary?: string;
   hasEverydayData?: boolean;
   created?: boolean;
