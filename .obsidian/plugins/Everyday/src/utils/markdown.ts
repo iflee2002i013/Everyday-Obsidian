@@ -34,12 +34,12 @@ export function updateManagedBlock(content: string, block: string): string {
   return insertManagedBlock(content, block);
 }
 
-export function extractSummaryFromManagedBlock(content: string): string | undefined {
+export function extractSummaryFromManagedBlock(content: string, moodEmojis: string[] = []): string | undefined {
   const startIndex = content.indexOf(EVERYDAY_BLOCK_START);
   const endIndex = startIndex >= 0 ? content.indexOf(EVERYDAY_BLOCK_END, startIndex) : -1;
 
   if (startIndex >= 0 && endIndex >= 0) {
-    return readSummaryFromBlock(content.slice(startIndex + EVERYDAY_BLOCK_START.length, endIndex));
+    return readSummaryFromBlock(content.slice(startIndex + EVERYDAY_BLOCK_START.length, endIndex), moodEmojis);
   }
 
   const sectionRange = getOneSentenceSectionRange(content);
@@ -48,7 +48,7 @@ export function extractSummaryFromManagedBlock(content: string): string | undefi
     return undefined;
   }
 
-  return readSummaryFromBlock(content.slice(sectionRange.start, sectionRange.end));
+  return readSummaryFromBlock(content.slice(sectionRange.start, sectionRange.end), moodEmojis);
 }
 
 export function applyTemplateVariables(content: string, date: string): string {
@@ -120,11 +120,23 @@ function getOneSentenceSectionRange(content: string): { start: number; end: numb
   };
 }
 
-function readSummaryFromBlock(blockContent: string): string | undefined {
+function readSummaryFromBlock(blockContent: string, moodEmojis: string[]): string | undefined {
   const lines = blockContent
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith("#"));
 
-  return lines[0];
+  const line = lines[0];
+
+  if (!line) {
+    return undefined;
+  }
+
+  for (const emoji of moodEmojis) {
+    if (line.startsWith(emoji)) {
+      return line.slice(emoji.length).trim();
+    }
+  }
+
+  return line;
 }

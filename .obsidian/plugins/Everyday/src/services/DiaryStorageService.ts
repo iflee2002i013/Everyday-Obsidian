@@ -1,8 +1,8 @@
 import { App, Notice, TFile, TFolder } from "obsidian";
 import { DEFAULT_MOODS } from "../constants";
-import type { DiaryEntry, EverydaySettings, MoodOption, SaveDiaryInput } from "../types";
+import type { DailyNotesSettings, DiaryEntry, EverydaySettings, MoodOption, SaveDiaryInput } from "../types";
 import { applyTemplateVariables, buildManagedBlock, extractSummaryFromManagedBlock, updateManagedBlock } from "../utils/markdown";
-import { getDiaryFilePath, getDiaryFolderPath, normalizeVaultPath } from "../utils/path";
+import { getDiaryFilePath, getDiaryFolderPathFromFilePath, normalizeVaultPath } from "../utils/path";
 import { DateService } from "./DateService";
 
 export class DiaryStorageService {
@@ -16,11 +16,11 @@ export class DiaryStorageService {
   }
 
   getDiaryFilePath(date: string): string {
-    return getDiaryFilePath(date, this.settings);
+    return getDiaryFilePath(date, this.settings, this.getDailyNotesSettings());
   }
 
   async ensureDiaryFolder(date: string): Promise<void> {
-    await this.ensureFolderPath(getDiaryFolderPath(date, this.settings));
+    await this.ensureFolderPath(getDiaryFolderPathFromFilePath(this.getDiaryFilePath(date)));
   }
 
   async getEntry(date: string): Promise<DiaryEntry> {
@@ -38,7 +38,8 @@ export class DiaryStorageService {
     const frontmatter = this.getFrontmatter(abstractFile);
     const content = await this.app.vault.cachedRead(abstractFile);
     const hasLegacyData = hasLegacyPluginData(frontmatter);
-    const summary = readString(frontmatter, "summery") ?? (hasLegacyData ? readString(frontmatter, "summary") : undefined) ?? extractSummaryFromManagedBlock(content);
+    const summaryFromBody = extractSummaryFromManagedBlock(content, this.settings.moods.map((mood) => mood.emoji));
+    const summary = summaryFromBody ?? readString(frontmatter, "summery") ?? (hasLegacyData ? readString(frontmatter, "summary") : undefined);
     const moodLabel = readString(frontmatter, "mood_label");
     const moodEmoji = readString(frontmatter, "mood_emoji");
     const mood = this.getMoodIdFromFrontmatter(frontmatter, moodLabel, moodEmoji);
@@ -217,6 +218,31 @@ ${block}
     return this.app.metadataCache.getFileCache(file)?.frontmatter as Record<string, unknown> | undefined;
   }
 
+  private getDailyNotesSettings(): DailyNotesSettings | undefined {
+    const appWithInternalPlugins = this.app as unknown as {
+      internalPlugins?: {
+        plugins?: Record<string, unknown>;
+      };
+    };
+    const dailyNotesPlugin = appWithInternalPlugins.internalPlugins?.plugins?.["daily-notes"];
+
+    if (!isRecord(dailyNotesPlugin)) {
+      return undefined;
+    }
+
+    const instance = isRecord(dailyNotesPlugin.instance) ? dailyNotesPlugin.instance : undefined;
+    const options = isRecord(instance?.options) ? instance.options : undefined;
+
+    if (!options) {
+      return undefined;
+    }
+
+    return {
+      folder: readString(options, "folder"),
+      format: readString(options, "format")
+    };
+  }
+
   private getMoodIdFromFrontmatter(
     frontmatter: Record<string, unknown> | undefined,
     moodLabel: string | undefined,
@@ -235,6 +261,10 @@ ${block}
 function readString(frontmatter: Record<string, unknown> | undefined, key: string): string | undefined {
   const value = frontmatter?.[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function hasLegacyPluginData(frontmatter: Record<string, unknown> | undefined): boolean {

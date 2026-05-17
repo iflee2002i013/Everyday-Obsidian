@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_MOODS, DEFAULT_SETTINGS } from "./constants";
 import type EverydayPlugin from "./main";
-import type { EverydaySettings, MonthViewMode, MoodOption, WeekStart } from "./types";
+import type { DiaryNameMode, EverydaySettings, MonthViewMode, MoodOption, WeekStart } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -43,6 +43,10 @@ function readViewMode(raw: Record<string, unknown>): MonthViewMode {
   return raw.viewMode === "calendar" ? "calendar" : "list";
 }
 
+function readDiaryNameMode(raw: Record<string, unknown>): DiaryNameMode {
+  return raw.diaryNameMode === "daily-notes" ? "daily-notes" : "custom";
+}
+
 export function normalizeSettings(data: unknown): EverydaySettings {
   const raw = isRecord(data) ? data : {};
   const moods = Array.isArray(raw.moods) && raw.moods.every(isMoodOption)
@@ -54,6 +58,8 @@ export function normalizeSettings(data: unknown): EverydaySettings {
   return {
     diaryFolder: readString(raw, "diaryFolder", DEFAULT_SETTINGS.diaryFolder).trim() || DEFAULT_SETTINGS.diaryFolder,
     useYearSubfolders: readBoolean(raw, "useYearSubfolders", DEFAULT_SETTINGS.useYearSubfolders),
+    diaryNameMode: readDiaryNameMode(raw),
+    diaryNameFormat: readString(raw, "diaryNameFormat", DEFAULT_SETTINGS.diaryNameFormat).trim() || DEFAULT_SETTINGS.diaryNameFormat,
     defaultMoodId: moods.some((mood) => mood.id === defaultMoodId) ? defaultMoodId : DEFAULT_SETTINGS.defaultMoodId,
     weekStart: readWeekStart(raw),
     openNoteAfterSave: readBoolean(raw, "openNoteAfterSave", DEFAULT_SETTINGS.openNoteAfterSave),
@@ -91,7 +97,7 @@ export class EverydaySettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("使用年份子目录")
-      .setDesc("开启后保存为 Diary/2026/2026-05-14.md。")
+      .setDesc("使用自定义文件名格式时生效。开启后保存到 Diary/2026/。")
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.useYearSubfolders)
@@ -101,6 +107,38 @@ export class EverydaySettingTab extends PluginSettingTab {
             await this.plugin.refreshMonthViews();
           });
       });
+
+    new Setting(containerEl)
+      .setName("日记命名方式")
+      .setDesc("可以沿用 Obsidian 核心日记插件的文件夹和格式，也可以由 Everyday 自定义。")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("daily-notes", "使用日记插件格式")
+          .addOption("custom", "自定义格式")
+          .setValue(this.plugin.settings.diaryNameMode)
+          .onChange(async (value) => {
+            this.plugin.settings.diaryNameMode = value === "daily-notes" ? "daily-notes" : "custom";
+            await this.plugin.saveSettings();
+            await this.plugin.refreshMonthViews();
+            this.display();
+          });
+      });
+
+    if (this.plugin.settings.diaryNameMode === "custom") {
+      new Setting(containerEl)
+        .setName("自定义日记文件名格式")
+        .setDesc("使用 Moment.js 格式，例如 YYYY-MM-DD 或 YYYY/MM/YYYYMMDD。插件会自动补 .md。")
+        .addText((text) => {
+          text
+            .setPlaceholder(DEFAULT_SETTINGS.diaryNameFormat)
+            .setValue(this.plugin.settings.diaryNameFormat)
+            .onChange(async (value) => {
+              this.plugin.settings.diaryNameFormat = value.trim() || DEFAULT_SETTINGS.diaryNameFormat;
+              await this.plugin.saveSettings();
+              await this.plugin.refreshMonthViews();
+            });
+        });
+    }
 
     new Setting(containerEl)
       .setName("默认心情")

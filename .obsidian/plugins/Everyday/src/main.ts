@@ -1,15 +1,16 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_MONTH_MEMORY } from "./constants";
 import { QuickCaptureModal } from "./modals/QuickCaptureModal";
 import { DateService } from "./services/DateService";
 import { DiaryStorageService } from "./services/DiaryStorageService";
 import { EverydaySettingTab, normalizeSettings } from "./settings";
-import type { DiaryEntry, EverydaySettings } from "./types";
+import type { DiaryEntry, EverydaySettings, MonthViewMode } from "./types";
 import { MonthMemoryView } from "./views/MonthMemoryView";
 
 export default class EverydayPlugin extends Plugin {
   settings: EverydaySettings;
   private storage: DiaryStorageService;
+  private refreshTimer: number | undefined;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -21,7 +22,8 @@ export default class EverydayPlugin extends Plugin {
         leaf,
         this.storage,
         () => this.settings,
-        (date) => this.openQuickCapture(date)
+        (date) => this.openQuickCapture(date),
+        (mode) => this.changeMonthViewMode(mode)
       )
     );
 
@@ -50,6 +52,12 @@ export default class EverydayPlugin extends Plugin {
     });
 
     this.addSettingTab(new EverydaySettingTab(this.app, this));
+    this.registerFileChangeRefreshEvents();
+    this.register(() => {
+      if (this.refreshTimer !== undefined) {
+        window.clearTimeout(this.refreshTimer);
+      }
+    });
   }
 
   onunload(): void {
@@ -99,7 +107,48 @@ export default class EverydayPlugin extends Plugin {
     }
   }
 
+  async changeMonthViewMode(mode: MonthViewMode): Promise<void> {
+    this.settings.viewMode = mode;
+    await this.saveSettings();
+    await this.refreshMonthViews();
+  }
+
   private async handleEntrySaved(_entry: DiaryEntry): Promise<void> {
     await this.refreshMonthViews();
+  }
+
+  private registerFileChangeRefreshEvents(): void {
+    this.registerEvent(this.app.vault.on("modify", (file) => this.scheduleRefreshForFile(file)));
+    this.registerEvent(this.app.vault.on("create", (file) => this.scheduleRefreshForFile(file)));
+    this.registerEvent(this.app.vault.on("delete", (file) => this.scheduleRefreshForFile(file)));
+    this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
+      this.scheduleRefreshForFile(file);
+
+      if (oldPath.endsWith(".md")) {
+        this.scheduleMonthViewRefresh();
+      }
+    }));
+    this.registerEvent(this.app.metadataCache.on("changed", (file) => this.scheduleRefreshForFile(file)));
+  }
+
+  private scheduleRefreshForFile(file: TAbstractFile): void {
+    if (file instanceof TFile && file.extension === "md") {
+      this.scheduleMonthViewRefresh();
+    }
+  }
+
+  private scheduleMonthViewRefresh(): void {
+    if (this.app.workspace.getLeavesOfType(VIEW_TYPE_MONTH_MEMORY).length === 0) {
+      return;
+    }
+
+    if (this.refreshTimer !== undefined) {
+      window.clearTimeout(this.refreshTimer);
+    }
+
+    this.refreshTimer = window.setTimeout(() => {
+      this.refreshTimer = undefined;
+      void this.refreshMonthViews();
+    }, 300);
   }
 }

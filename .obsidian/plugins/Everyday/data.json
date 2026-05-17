@@ -1,10 +1,12 @@
 {
   "diaryFolder": "Diary",
   "useYearSubfolders": true,
+  "diaryNameMode": "custom",
+  "diaryNameFormat": "YYYY-MM-DD",
   "defaultMoodId": "normal",
   "weekStart": "monday",
   "openNoteAfterSave": false,
-  "viewMode": "calendar",
+  "viewMode": "list",
   "templateFilePath": "",
   "moods": [
     {

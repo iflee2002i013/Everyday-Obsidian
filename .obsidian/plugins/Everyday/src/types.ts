@@ -10,9 +10,13 @@ export type WeekStart = "monday" | "sunday";
 
 export type MonthViewMode = "list" | "calendar";
 
+export type DiaryNameMode = "daily-notes" | "custom";
+
 export interface EverydaySettings {
   diaryFolder: string;
   useYearSubfolders: boolean;
+  diaryNameMode: DiaryNameMode;
+  diaryNameFormat: string;
   defaultMoodId: string;
   weekStart: WeekStart;
   openNoteAfterSave: boolean;
@@ -37,4 +41,9 @@ export interface SaveDiaryInput {
   date: string;
   summary: string;
   moodId: string;
+}
+
+export interface DailyNotesSettings {
+  folder?: string;
+  format?: string;
 }

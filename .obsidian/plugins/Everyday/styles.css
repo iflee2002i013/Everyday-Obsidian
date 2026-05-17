@@ -28,6 +28,29 @@
   text-align: center;
 }
 
+.Everyday-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+.Everyday-mode-button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.Everyday-mode-button.is-active {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
 .Everyday-icon-button {
   min-width: 32px;
   height: 32px;

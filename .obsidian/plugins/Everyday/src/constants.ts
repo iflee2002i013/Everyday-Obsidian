@@ -53,6 +53,8 @@ export const DEFAULT_MOODS: MoodOption[] = [
 export const DEFAULT_SETTINGS: EverydaySettings = {
   diaryFolder: "Diary",
   useYearSubfolders: true,
+  diaryNameMode: "custom",
+  diaryNameFormat: "YYYY-MM-DD",
   defaultMoodId: "normal",
   weekStart: "monday",
   openNoteAfterSave: false,

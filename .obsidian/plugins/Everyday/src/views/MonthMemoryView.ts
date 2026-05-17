@@ -2,9 +2,10 @@ import { ItemView, Notice, WorkspaceLeaf, setIcon } from "obsidian";
 import { VIEW_TYPE_MONTH_MEMORY } from "../constants";
 import { DateService } from "../services/DateService";
 import { DiaryStorageService } from "../services/DiaryStorageService";
-import type { DiaryEntry, EverydaySettings } from "../types";
+import type { DiaryEntry, EverydaySettings, MonthViewMode } from "../types";
 
 type OpenCapture = (date?: string) => void;
+type ChangeViewMode = (mode: MonthViewMode) => void | Promise<void>;
 
 export class MonthMemoryView extends ItemView {
   private currentYear: number;
@@ -14,7 +15,8 @@ export class MonthMemoryView extends ItemView {
     leaf: WorkspaceLeaf,
     private readonly storage: DiaryStorageService,
     private readonly getSettings: () => EverydaySettings,
-    private readonly openCapture: OpenCapture
+    private readonly openCapture: OpenCapture,
+    private readonly changeViewMode: ChangeViewMode
   ) {
     super(leaf);
 
@@ -123,6 +125,13 @@ export class MonthMemoryView extends ItemView {
     });
 
     const actions = header.createDiv({ cls: "Everyday-header-actions" });
+    const modeSwitch = actions.createDiv({
+      cls: "Everyday-mode-switch",
+      attr: { "aria-label": "月视图模式" }
+    });
+    this.renderModeButton(modeSwitch, "list", "列表");
+    this.renderModeButton(modeSwitch, "calendar", "日历");
+
     const todayButton = actions.createEl("button", { text: "今天" });
     todayButton.addEventListener("click", () => {
       void this.goToCurrentMonth();
@@ -133,6 +142,24 @@ export class MonthMemoryView extends ItemView {
       text: "快速记录"
     });
     captureButton.addEventListener("click", () => this.openCapture());
+  }
+
+  private renderModeButton(container: HTMLElement, mode: MonthViewMode, label: string): void {
+    const isActive = this.getSettings().viewMode === mode;
+    const button = container.createEl("button", {
+      cls: `Everyday-mode-button${isActive ? " is-active" : ""}`,
+      text: label,
+      attr: {
+        "aria-pressed": String(isActive)
+      }
+    });
+    button.addEventListener("click", async () => {
+      if (this.getSettings().viewMode === mode) {
+        return;
+      }
+
+      await this.changeViewMode(mode);
+    });
   }
 
   private renderList(container: HTMLElement, entries: DiaryEntry[]): void {
@@ -282,7 +309,7 @@ export class MonthMemoryView extends ItemView {
     }
 
     if (entry.exists) {
-      return "已创建日记，点击记录一句话";
+      return "已创建日记，点击打开";
     }
 
     return "未记录";
@@ -293,7 +320,7 @@ export class MonthMemoryView extends ItemView {
   }
 
   private async handlePrimaryAction(entry: DiaryEntry): Promise<void> {
-    if (entry.exists && entry.summary) {
+    if (entry.exists) {
       await this.storage.openDiaryFile(entry.date);
       return;
     }
@@ -302,7 +329,7 @@ export class MonthMemoryView extends ItemView {
   }
 
   private getPrimaryActionTitle(entry: DiaryEntry): string {
-    if (entry.exists && entry.summary) {
+    if (entry.exists) {
       return "打开日记";
     }
 
