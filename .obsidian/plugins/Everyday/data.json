@@ -4,7 +4,7 @@
   "defaultMoodId": "normal",
   "weekStart": "monday",
   "openNoteAfterSave": false,
-  "viewMode": "list",
+  "viewMode": "calendar",
   "templateFilePath": "",
   "moods": [
     {
