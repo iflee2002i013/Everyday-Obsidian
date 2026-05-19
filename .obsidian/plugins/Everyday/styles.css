@@ -269,8 +269,24 @@
 
 .Everyday-memory-board-title-button {
   min-width: 160px;
+  min-height: 42px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   color: var(--text-normal);
+  line-height: 1.25;
+  text-align: left;
+}
+
+.Everyday-memory-board-title-primary {
+  font-size: 16px;
   font-weight: 650;
+}
+
+.Everyday-memory-board-title-secondary {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .Everyday-memory-board-scroll {
@@ -308,6 +324,7 @@
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .Everyday-memory-month-days {

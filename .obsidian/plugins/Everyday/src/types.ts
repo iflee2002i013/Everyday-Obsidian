@@ -12,6 +12,11 @@ export type MonthViewMode = "list" | "calendar";
 
 export type DiaryNameMode = "daily-notes" | "custom";
 
+export interface YearMonth {
+  year: number;
+  month: number;
+}
+
 export interface EverydaySettings {
   diaryFolder: string;
   useYearSubfolders: boolean;

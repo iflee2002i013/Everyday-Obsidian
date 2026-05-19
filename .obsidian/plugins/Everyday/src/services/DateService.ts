@@ -1,3 +1,5 @@
+import type { YearMonth } from "../types";
+
 export class DateService {
   static todayString(): string {
     return DateService.formatDate(new Date());
@@ -43,6 +45,14 @@ export class DateService {
     return `${year} 年 ${month} 月`;
   }
 
+  static monthLabel(year: number, month: number): string {
+    return `${String(month).padStart(2, "0")} 月`;
+  }
+
+  static monthNumberLabel(year: number, month: number): string {
+    return `${month} 月`;
+  }
+
   static isToday(dateText: string): boolean {
     return dateText === DateService.todayString();
   }
@@ -66,5 +76,25 @@ export class DateService {
     }
 
     return { year, month };
+  }
+
+  static getHalfYearStart(date: Date = new Date()): YearMonth {
+    const month = date.getMonth() + 1;
+    return {
+      year: date.getFullYear(),
+      month: month <= 6 ? 1 : 7
+    };
+  }
+
+  static addMonths(year: number, month: number, offset: number): YearMonth {
+    const date = new Date(year, month - 1 + offset, 1);
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1
+    };
+  }
+
+  static getMonthRange(startYear: number, startMonth: number, count: number): YearMonth[] {
+    return Array.from({ length: count }, (_, index) => DateService.addMonths(startYear, startMonth, index));
   }
 }

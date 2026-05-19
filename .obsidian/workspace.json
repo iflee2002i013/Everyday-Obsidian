@@ -8,16 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "c157a947935b9c96",
-            "type": "leaf",
-            "state": {
-              "type": "everyday-memory-board-view",
-              "state": {},
-              "icon": "calendar-days",
-              "title": "Memory Board"
-            }
-          },
-          {
             "id": "c5126b6b0f5a2f4f",
             "type": "leaf",
             "state": {
@@ -44,9 +34,33 @@
               "icon": "lucide-file",
               "title": "MVP2-第2阶段"
             }
+          },
+          {
+            "id": "65c379a3aa592a43",
+            "type": "leaf",
+            "state": {
+              "type": "everyday-memory-board-view",
+              "state": {},
+              "icon": "calendar-days",
+              "title": "Memory Board"
+            }
+          },
+          {
+            "id": "de5cfcda0b783912",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "开发资料/MVP2/MVP2.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "MVP2"
+            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -215,7 +229,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 335.5
+    "width": 343.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -229,12 +243,12 @@
       "Everyday:Open monthly memory board": false
     }
   },
-  "active": "3384e353ded11227",
+  "active": "de5cfcda0b783912",
   "lastOpenFiles": [
-    "开发资料/MVP2/MVP2-第1阶段.md",
-    "开发资料/MVP2/MVP2-第2阶段.md",
-    "开发资料/MVP2/MVP2.md",
     "开发资料/MVP2/MVP2spec探讨.md",
+    "开发资料/MVP2/MVP2-第2阶段.md",
+    "开发资料/MVP2/MVP2-第1阶段.md",
+    "开发资料/MVP2/MVP2.md",
     "开发资料/MVP2/MVP2初版定义.md",
     "开发资料/更多想法.md",
     "模板文件夹/日记模板.md",
