@@ -42,6 +42,10 @@ export interface DiaryEntry {
   created?: boolean;
 }
 
+export interface MemoryBoardMonth extends YearMonth {
+  entries: DiaryEntry[];
+}
+
 export interface SaveDiaryInput {
   date: string;
   summary: string;

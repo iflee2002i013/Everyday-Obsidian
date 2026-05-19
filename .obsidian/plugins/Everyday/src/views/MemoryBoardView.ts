@@ -1,7 +1,8 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_MEMORY_BOARD } from "../constants";
 import { DateService } from "../services/DateService";
-import type { YearMonth } from "../types";
+import type { DiaryStorageService } from "../services/DiaryStorageService";
+import type { DiaryEntry, MemoryBoardMonth, YearMonth } from "../types";
 
 type OpenCapture = () => void;
 
@@ -17,6 +18,7 @@ export class MemoryBoardView extends ItemView {
 
   constructor(
     leaf: WorkspaceLeaf,
+    private readonly storage: DiaryStorageService,
     private readonly openCapture: OpenCapture
   ) {
     super(leaf);
@@ -74,7 +76,19 @@ export class MemoryBoardView extends ItemView {
     container.addClass("Everyday-memory-board");
 
     this.renderToolbar(container);
-    this.renderBlankGrid(container);
+    const body = container.createDiv({ cls: "Everyday-memory-board-body" });
+
+    try {
+      const months = await this.loadMonths();
+      this.renderGrid(body, months);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      body.createDiv({
+        cls: "Everyday-error",
+        text: `Memory Board 加载失败：${message}`
+      });
+      new Notice(`Memory Board load failed: ${message}`);
+    }
   }
 
   private renderToolbar(container: HTMLElement): void {
@@ -131,10 +145,9 @@ export class MemoryBoardView extends ItemView {
     captureButton.addEventListener("click", () => this.openCapture());
   }
 
-  private renderBlankGrid(container: HTMLElement): void {
+  private renderGrid(container: HTMLElement, months: MemoryBoardMonth[]): void {
     const scroll = container.createDiv({ cls: "Everyday-memory-board-scroll" });
     const grid = scroll.createDiv({ cls: "Everyday-memory-board-grid" });
-    const months = this.getDisplayedMonths();
 
     for (const month of months) {
       const column = grid.createDiv({ cls: "Everyday-memory-month-column" });
@@ -148,12 +161,108 @@ export class MemoryBoardView extends ItemView {
         text: String(month.year)
       });
 
-      column.createDiv({ cls: "Everyday-memory-month-days" });
+      this.renderMonthDays(column.createDiv({ cls: "Everyday-memory-month-days" }), month);
     }
+  }
+
+  private renderMonthDays(container: HTMLElement, month: MemoryBoardMonth): void {
+    const entriesByDay = new Map<number, DiaryEntry>();
+
+    for (const entry of month.entries) {
+      entriesByDay.set(Number(DateService.dayOfMonth(entry.date)), entry);
+    }
+
+    const daysInMonth = DateService.daysInMonth(month.year, month.month);
+
+    for (let day = 1; day <= 31; day += 1) {
+      if (day > daysInMonth) {
+        container.createDiv({
+          cls: "Everyday-memory-day-row is-invalid",
+          attr: { "aria-hidden": "true" }
+        });
+        continue;
+      }
+
+      const dateText = this.formatDate(month.year, month.month, day);
+      const entry = entriesByDay.get(day) ?? {
+        date: dateText,
+        filePath: "",
+        exists: false
+      };
+      const row = container.createDiv({ cls: this.getDayRowClass(entry) });
+
+      row.createDiv({
+        cls: "Everyday-memory-day-date",
+        text: String(day).padStart(2, "0")
+      });
+      row.createDiv({
+        cls: "Everyday-memory-day-weekday",
+        text: DateService.weekdayLabel(dateText)
+      });
+      row.createDiv({
+        cls: "Everyday-memory-day-mood",
+        text: entry.moodEmoji ?? ""
+      });
+      row.createDiv({
+        cls: "Everyday-memory-day-summary",
+        text: this.getEntrySummary(entry)
+      });
+    }
+  }
+
+  private async loadMonths(): Promise<MemoryBoardMonth[]> {
+    const months: MemoryBoardMonth[] = [];
+
+    for (const month of this.getDisplayedMonths()) {
+      months.push({
+        ...month,
+        entries: await this.storage.getMonthEntries(month.year, month.month)
+      });
+    }
+
+    return months;
   }
 
   private getDisplayedMonths(): YearMonth[] {
     return DateService.getMonthRange(this.startYear, this.startMonth, this.monthCount);
+  }
+
+  private getDayRowClass(entry: DiaryEntry): string {
+    const classes = ["Everyday-memory-day-row"];
+
+    if (!entry.exists || !entry.hasEverydayData) {
+      classes.push("is-empty");
+    }
+
+    if (entry.exists && !entry.hasEverydayData) {
+      classes.push("has-note");
+    }
+
+    if (entry.summary) {
+      classes.push("has-summary");
+    }
+
+    if (entry.moodEmoji) {
+      classes.push("has-mood");
+    }
+
+    if (DateService.isToday(entry.date)) {
+      classes.push("is-today");
+    }
+
+    return classes.join(" ");
+  }
+
+  private getEntrySummary(entry: DiaryEntry): string {
+    if (entry.summary) {
+      return entry.summary;
+    }
+
+    if (entry.exists) {
+      return "已创建日记";
+    }
+
+    return "";
   }
 
   private getRangeTitleParts(): RangeTitleParts {
@@ -189,5 +298,9 @@ export class MemoryBoardView extends ItemView {
     }
 
     return undefined;
+  }
+
+  private formatDate(year: number, month: number, day: number): string {
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 }
