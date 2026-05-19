@@ -1,6 +1,7 @@
 import type { EverydaySettings, MoodOption } from "./types";
 
 export const VIEW_TYPE_MONTH_MEMORY = "Everyday-month-view";
+export const VIEW_TYPE_MEMORY_BOARD = "everyday-memory-board-view";
 
 export const DEFAULT_MOODS: MoodOption[] = [
   {

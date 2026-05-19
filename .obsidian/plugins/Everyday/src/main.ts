@@ -1,10 +1,11 @@
 import { Plugin, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
-import { VIEW_TYPE_MONTH_MEMORY } from "./constants";
+import { VIEW_TYPE_MEMORY_BOARD, VIEW_TYPE_MONTH_MEMORY } from "./constants";
 import { QuickCaptureModal } from "./modals/QuickCaptureModal";
 import { DateService } from "./services/DateService";
 import { DiaryStorageService } from "./services/DiaryStorageService";
 import { EverydaySettingTab, normalizeSettings } from "./settings";
 import type { DiaryEntry, EverydaySettings, MonthViewMode } from "./types";
+import { MemoryBoardView } from "./views/MemoryBoardView";
 import { MonthMemoryView } from "./views/MonthMemoryView";
 
 export default class EverydayPlugin extends Plugin {
@@ -27,6 +28,14 @@ export default class EverydayPlugin extends Plugin {
       )
     );
 
+    this.registerView(
+      VIEW_TYPE_MEMORY_BOARD,
+      (leaf) => new MemoryBoardView(
+        leaf,
+        () => this.openQuickCapture()
+      )
+    );
+
     this.addRibbonIcon("calendar-days", "Open monthly memory board", () => {
       void this.openMonthView();
     });
@@ -42,6 +51,14 @@ export default class EverydayPlugin extends Plugin {
       name: "Open monthly memory board",
       callback: () => {
         void this.openMonthView();
+      }
+    });
+
+    this.addCommand({
+      id: "open-memory-board",
+      name: "Open Memory Board",
+      callback: () => {
+        void this.openMemoryBoard();
       }
     });
 
@@ -62,6 +79,7 @@ export default class EverydayPlugin extends Plugin {
 
   onunload(): void {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_MONTH_MEMORY);
+    this.app.workspace.detachLeavesOfType(VIEW_TYPE_MEMORY_BOARD);
   }
 
   async loadSettings(): Promise<void> {
@@ -90,6 +108,20 @@ export default class EverydayPlugin extends Plugin {
       leaf = this.app.workspace.getRightLeaf(false) ?? this.app.workspace.getLeaf(true);
       await leaf.setViewState({
         type: VIEW_TYPE_MONTH_MEMORY,
+        active: true
+      });
+    }
+
+    this.app.workspace.revealLeaf(leaf);
+  }
+
+  async openMemoryBoard(): Promise<void> {
+    let leaf: WorkspaceLeaf | undefined = this.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_BOARD)[0];
+
+    if (!leaf) {
+      leaf = this.app.workspace.getLeaf("tab");
+      await leaf.setViewState({
+        type: VIEW_TYPE_MEMORY_BOARD,
         active: true
       });
     }

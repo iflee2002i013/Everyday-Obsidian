@@ -241,12 +241,92 @@
   margin-top: 4px;
 }
 
+.Everyday-memory-board-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.Everyday-memory-board-nav,
+.Everyday-memory-board-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Everyday-memory-board-nav {
+  flex: 1 1 260px;
+}
+
+.Everyday-memory-board-actions {
+  flex: 1 1 180px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.Everyday-memory-board-title-button {
+  min-width: 160px;
+  color: var(--text-normal);
+  font-weight: 650;
+}
+
+.Everyday-memory-board-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.Everyday-memory-board-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(180px, 1fr));
+  gap: 8px;
+  min-width: 1080px;
+}
+
+.Everyday-memory-month-column {
+  min-height: 360px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+
+.Everyday-memory-month-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.Everyday-memory-month-title {
+  color: var(--text-normal);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.Everyday-memory-month-year {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.Everyday-memory-month-days {
+  min-height: 308px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    var(--background-modifier-border) 32px
+  );
+}
+
 @media (max-width: 520px) {
   .Everyday-view {
     padding: 14px 12px 24px;
   }
 
-  .Everyday-header {
+  .Everyday-header,
+  .Everyday-memory-board-toolbar {
     align-items: flex-start;
     flex-direction: column;
   }
