@@ -62,6 +62,20 @@ export class MemoryBoardView extends ItemView {
     await this.render();
   }
 
+  async goToPreviousYear(): Promise<void> {
+    const start = DateService.addMonths(this.startYear, this.startMonth, -12);
+    this.startYear = start.year;
+    this.startMonth = start.month;
+    await this.render();
+  }
+
+  async goToNextYear(): Promise<void> {
+    const start = DateService.addMonths(this.startYear, this.startMonth, 12);
+    this.startYear = start.year;
+    this.startMonth = start.month;
+    await this.render();
+  }
+
   async goToCurrentPeriod(): Promise<void> {
     const start = DateService.getHalfYearStart();
     this.startYear = start.year;
@@ -95,6 +109,15 @@ export class MemoryBoardView extends ItemView {
     const toolbar = container.createDiv({ cls: "Everyday-memory-board-toolbar" });
     const nav = toolbar.createDiv({ cls: "Everyday-memory-board-nav" });
 
+    const previousYearButton = nav.createEl("button", {
+      cls: "Everyday-icon-button",
+      attr: { "aria-label": "上一年" }
+    });
+    previousYearButton.setText("<<");
+    previousYearButton.addEventListener("click", () => {
+      void this.goToPreviousYear();
+    });
+
     const previousButton = nav.createEl("button", {
       cls: "Everyday-icon-button",
       attr: { "aria-label": "上一个时间段" }
@@ -120,7 +143,6 @@ export class MemoryBoardView extends ItemView {
         text: titleParts.secondary
       });
     }
-
     titleButton.disabled = true;
 
     const nextButton = nav.createEl("button", {
@@ -130,6 +152,15 @@ export class MemoryBoardView extends ItemView {
     nextButton.setText(">");
     nextButton.addEventListener("click", () => {
       void this.goToNextPeriod();
+    });
+
+    const nextYearButton = nav.createEl("button", {
+      cls: "Everyday-icon-button",
+      attr: { "aria-label": "下一年" }
+    });
+    nextYearButton.setText(">>");
+    nextYearButton.addEventListener("click", () => {
+      void this.goToNextYear();
     });
 
     const actions = toolbar.createDiv({ cls: "Everyday-memory-board-actions" });
