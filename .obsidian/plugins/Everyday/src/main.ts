@@ -33,7 +33,7 @@ export default class EverydayPlugin extends Plugin {
       (leaf) => new MemoryBoardView(
         leaf,
         this.storage,
-        () => this.openQuickCapture()
+        (date) => this.openQuickCapture(date)
       )
     );
 
@@ -140,6 +140,21 @@ export default class EverydayPlugin extends Plugin {
     }
   }
 
+  async refreshMemoryBoardViews(): Promise<void> {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_BOARD);
+
+    for (const leaf of leaves) {
+      if (leaf.view instanceof MemoryBoardView) {
+        await leaf.view.refresh();
+      }
+    }
+  }
+
+  async refreshOpenEverydayViews(): Promise<void> {
+    await this.refreshMonthViews();
+    await this.refreshMemoryBoardViews();
+  }
+
   async changeMonthViewMode(mode: MonthViewMode): Promise<void> {
     this.settings.viewMode = mode;
     await this.saveSettings();
@@ -147,7 +162,7 @@ export default class EverydayPlugin extends Plugin {
   }
 
   private async handleEntrySaved(_entry: DiaryEntry): Promise<void> {
-    await this.refreshMonthViews();
+    await this.refreshOpenEverydayViews();
   }
 
   private registerFileChangeRefreshEvents(): void {
@@ -158,7 +173,7 @@ export default class EverydayPlugin extends Plugin {
       this.scheduleRefreshForFile(file);
 
       if (oldPath.endsWith(".md")) {
-        this.scheduleMonthViewRefresh();
+        this.scheduleEverydayViewsRefresh();
       }
     }));
     this.registerEvent(this.app.metadataCache.on("changed", (file) => this.scheduleRefreshForFile(file)));
@@ -166,12 +181,16 @@ export default class EverydayPlugin extends Plugin {
 
   private scheduleRefreshForFile(file: TAbstractFile): void {
     if (file instanceof TFile && file.extension === "md") {
-      this.scheduleMonthViewRefresh();
+      this.scheduleEverydayViewsRefresh();
     }
   }
 
-  private scheduleMonthViewRefresh(): void {
-    if (this.app.workspace.getLeavesOfType(VIEW_TYPE_MONTH_MEMORY).length === 0) {
+  private scheduleEverydayViewsRefresh(): void {
+    const hasOpenEverydayView =
+      this.app.workspace.getLeavesOfType(VIEW_TYPE_MONTH_MEMORY).length > 0 ||
+      this.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_BOARD).length > 0;
+
+    if (!hasOpenEverydayView) {
       return;
     }
 
@@ -181,7 +200,7 @@ export default class EverydayPlugin extends Plugin {
 
     this.refreshTimer = window.setTimeout(() => {
       this.refreshTimer = undefined;
-      void this.refreshMonthViews();
+      void this.refreshOpenEverydayViews();
     }, 300);
   }
 }

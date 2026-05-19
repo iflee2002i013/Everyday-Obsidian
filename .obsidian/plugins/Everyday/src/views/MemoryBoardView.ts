@@ -4,7 +4,7 @@ import { DateService } from "../services/DateService";
 import type { DiaryStorageService } from "../services/DiaryStorageService";
 import type { DiaryEntry, MemoryBoardMonth, YearMonth } from "../types";
 
-type OpenCapture = () => void;
+type OpenCapture = (date?: string) => void;
 
 interface RangeTitleParts {
   primary: string;
@@ -189,7 +189,23 @@ export class MemoryBoardView extends ItemView {
         filePath: "",
         exists: false
       };
-      const row = container.createDiv({ cls: this.getDayRowClass(entry) });
+      const row = container.createDiv({
+        cls: this.getDayRowClass(entry),
+        attr: {
+          role: "button",
+          tabindex: "0",
+          title: "点击编辑一句话，Alt + 点击打开日记"
+        }
+      });
+      row.addEventListener("click", (event) => {
+        void this.handleDayClick(event, entry);
+      });
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          this.openCapture(entry.date);
+        }
+      });
 
       row.createDiv({
         cls: "Everyday-memory-day-date",
@@ -263,6 +279,20 @@ export class MemoryBoardView extends ItemView {
     }
 
     return "";
+  }
+
+  private async handleDayClick(event: MouseEvent, entry: DiaryEntry): Promise<void> {
+    if (event.altKey) {
+      try {
+        await this.storage.openDiaryFile(entry.date);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        new Notice(`Diary open failed: ${message}`);
+      }
+      return;
+    }
+
+    this.openCapture(entry.date);
   }
 
   private getRangeTitleParts(): RangeTitleParts {

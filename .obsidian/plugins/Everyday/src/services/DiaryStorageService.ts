@@ -109,13 +109,21 @@ export class DiaryStorageService {
   async openDiaryFile(date: string): Promise<void> {
     const filePath = this.getDiaryFilePath(date);
     const abstractFile = this.app.vault.getAbstractFileByPath(filePath);
+    let file: TFile;
 
-    if (!(abstractFile instanceof TFile)) {
-      new Notice("Diary file not found.");
+    if (abstractFile && !(abstractFile instanceof TFile)) {
+      new Notice(`Path is not a Markdown file: ${filePath}`);
       return;
     }
 
-    await this.app.workspace.getLeaf(false).openFile(abstractFile);
+    if (abstractFile instanceof TFile) {
+      file = abstractFile;
+    } else {
+      await this.ensureDiaryFolder(date);
+      file = await this.app.vault.create(filePath, await this.buildInitialContent(date));
+    }
+
+    await this.app.workspace.getLeaf(false).openFile(file);
   }
 
   private getMood(moodId: string): MoodOption {
