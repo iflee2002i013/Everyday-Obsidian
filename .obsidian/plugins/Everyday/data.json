@@ -7,7 +7,7 @@
   "weekStart": "monday",
   "openNoteAfterSave": false,
   "viewMode": "list",
-  "templateFilePath": "日记模板.md",
+  "templateFilePath": "/模板文件夹/日记模板.md",
   "moods": [
     {
       "id": "happy",
