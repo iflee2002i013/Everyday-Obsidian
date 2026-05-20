@@ -290,15 +290,28 @@
 }
 
 .Everyday-memory-board-scroll {
+  max-width: 100%;
   overflow-x: auto;
-  padding-bottom: 8px;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  scrollbar-gutter: stable;
 }
 
 .Everyday-memory-board-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(180px, 1fr));
-  gap: 8px;
-  min-width: 1080px;
+  grid-template-columns: repeat(6, minmax(176px, 1fr));
+  gap: 6px;
+  min-width: 1056px;
+}
+
+.Everyday-memory-board-grid.is-half-year {
+  grid-template-columns: repeat(6, minmax(176px, 1fr));
+  min-width: 1056px;
+}
+
+.Everyday-memory-board-grid.is-quarter {
+  grid-template-columns: repeat(3, minmax(196px, 1fr));
+  min-width: 600px;
 }
 
 .Everyday-memory-month-column {
@@ -306,11 +319,13 @@
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
   background: var(--background-primary);
+  overflow: hidden;
 }
 
 .Everyday-memory-month-header {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
 }
 
 .Everyday-memory-month-title {
@@ -335,11 +350,12 @@
 
 .Everyday-memory-day-row {
   display: grid;
-  grid-template-columns: 30px 36px 24px minmax(0, 1fr);
+  grid-template-columns: 28px 31px 18px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 4px 8px;
+  column-gap: 3px;
+  min-height: 30px;
+  padding: 3px 6px 3px 5px;
+  border-left: 3px solid transparent;
   border-bottom: 1px solid var(--background-modifier-border);
   cursor: pointer;
 }
@@ -348,18 +364,39 @@
   background: var(--background-modifier-hover);
 }
 
+.Everyday-memory-day-row.has-mood {
+  border-left-color: var(--Everyday-memory-mood-color);
+  background: color-mix(in srgb, var(--Everyday-memory-mood-color) 15%, transparent);
+}
+
+.Everyday-memory-day-row.has-mood:hover {
+  background: color-mix(in srgb, var(--Everyday-memory-mood-color) 20%, var(--background-modifier-hover));
+}
+
 .Everyday-memory-day-row.is-empty {
   color: var(--text-faint);
 }
 
 .Everyday-memory-day-row.is-invalid {
+  border-left-color: transparent;
   color: transparent;
   cursor: default;
   pointer-events: none;
 }
 
 .Everyday-memory-day-row.is-today {
-  background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
+}
+
+.Everyday-memory-day-row.has-mood.is-today {
+  background:
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--interactive-accent) 8%, transparent),
+      color-mix(in srgb, var(--interactive-accent) 8%, transparent)
+    ),
+    color-mix(in srgb, var(--Everyday-memory-mood-color) 15%, transparent);
 }
 
 .Everyday-memory-day-date {
@@ -378,7 +415,7 @@
 }
 
 .Everyday-memory-day-mood {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   text-align: center;
 }
@@ -408,6 +445,39 @@
   .Everyday-memory-board-toolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .Everyday-memory-board-nav,
+  .Everyday-memory-board-actions {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .Everyday-memory-board-title-button {
+    min-width: 132px;
+  }
+
+  .Everyday-memory-board-grid {
+    grid-template-columns: repeat(6, minmax(166px, 1fr));
+    min-width: 996px;
+  }
+
+  .Everyday-memory-board-grid.is-half-year {
+    grid-template-columns: repeat(6, minmax(166px, 1fr));
+    min-width: 996px;
+  }
+
+  .Everyday-memory-board-grid.is-quarter {
+    grid-template-columns: repeat(3, minmax(166px, 1fr));
+    min-width: 498px;
+  }
+
+  .Everyday-memory-day-row {
+    grid-template-columns: 26px 29px 18px minmax(0, 1fr);
+    column-gap: 3px;
+    padding-inline: 4px;
   }
 
   .Everyday-day-row {

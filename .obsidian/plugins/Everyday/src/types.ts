@@ -10,6 +10,8 @@ export type WeekStart = "monday" | "sunday";
 
 export type MonthViewMode = "list" | "calendar";
 
+export type MemoryBoardLayoutMode = "half-year" | "quarter";
+
 export type DiaryNameMode = "daily-notes" | "custom";
 
 export interface YearMonth {
@@ -26,6 +28,7 @@ export interface EverydaySettings {
   weekStart: WeekStart;
   openNoteAfterSave: boolean;
   viewMode: MonthViewMode;
+  memoryBoardLayoutMode: MemoryBoardLayoutMode;
   templateFilePath: string;
   moods: MoodOption[];
 }

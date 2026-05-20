@@ -86,6 +86,14 @@ export class DateService {
     };
   }
 
+  static getQuarterStart(date: Date = new Date()): YearMonth {
+    const month = date.getMonth() + 1;
+    return {
+      year: date.getFullYear(),
+      month: Math.floor((month - 1) / 3) * 3 + 1
+    };
+  }
+
   static addMonths(year: number, month: number, offset: number): YearMonth {
     const date = new Date(year, month - 1 + offset, 1);
     return {

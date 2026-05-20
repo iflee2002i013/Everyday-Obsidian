@@ -33,6 +33,7 @@ export default class EverydayPlugin extends Plugin {
       (leaf) => new MemoryBoardView(
         leaf,
         this.storage,
+        () => this.settings,
         (date) => this.openQuickCapture(date)
       )
     );

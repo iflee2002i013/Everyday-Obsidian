@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_MOODS, DEFAULT_SETTINGS } from "./constants";
 import type EverydayPlugin from "./main";
-import type { DiaryNameMode, EverydaySettings, MonthViewMode, MoodOption, WeekStart } from "./types";
+import type { DiaryNameMode, EverydaySettings, MemoryBoardLayoutMode, MonthViewMode, MoodOption, WeekStart } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -43,6 +43,10 @@ function readViewMode(raw: Record<string, unknown>): MonthViewMode {
   return raw.viewMode === "calendar" ? "calendar" : "list";
 }
 
+function readMemoryBoardLayoutMode(raw: Record<string, unknown>): MemoryBoardLayoutMode {
+  return raw.memoryBoardLayoutMode === "quarter" ? "quarter" : "half-year";
+}
+
 function readDiaryNameMode(raw: Record<string, unknown>): DiaryNameMode {
   return raw.diaryNameMode === "daily-notes" ? "daily-notes" : "custom";
 }
@@ -64,6 +68,7 @@ export function normalizeSettings(data: unknown): EverydaySettings {
     weekStart: readWeekStart(raw),
     openNoteAfterSave: readBoolean(raw, "openNoteAfterSave", DEFAULT_SETTINGS.openNoteAfterSave),
     viewMode: readViewMode(raw),
+    memoryBoardLayoutMode: readMemoryBoardLayoutMode(raw),
     templateFilePath: readString(raw, "templateFilePath", DEFAULT_SETTINGS.templateFilePath).trim(),
     moods
   };
@@ -168,6 +173,21 @@ export class EverydaySettingTab extends PluginSettingTab {
             this.plugin.settings.viewMode = value === "calendar" ? "calendar" : "list";
             await this.plugin.saveSettings();
             await this.plugin.refreshMonthViews();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Memory Board 排版模式")
+      .setDesc("半年视图显示 6 个月；季度视图每页显示 3 个月。")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("half-year", "半年视图（6 个月）")
+          .addOption("quarter", "季度视图（3 个月）")
+          .setValue(this.plugin.settings.memoryBoardLayoutMode)
+          .onChange(async (value) => {
+            this.plugin.settings.memoryBoardLayoutMode = value === "quarter" ? "quarter" : "half-year";
+            await this.plugin.saveSettings();
+            await this.plugin.refreshMemoryBoardViews();
           });
       });
 

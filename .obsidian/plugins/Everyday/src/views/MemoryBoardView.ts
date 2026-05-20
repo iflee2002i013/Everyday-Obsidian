@@ -2,7 +2,7 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_MEMORY_BOARD } from "../constants";
 import { DateService } from "../services/DateService";
 import type { DiaryStorageService } from "../services/DiaryStorageService";
-import type { DiaryEntry, MemoryBoardMonth, YearMonth } from "../types";
+import type { DiaryEntry, EverydaySettings, MemoryBoardLayoutMode, MemoryBoardMonth, YearMonth } from "../types";
 
 type OpenCapture = (date?: string) => void;
 
@@ -12,18 +12,20 @@ interface RangeTitleParts {
 }
 
 export class MemoryBoardView extends ItemView {
-  private readonly monthCount = 6;
   private startYear: number;
   private startMonth: number;
+  private layoutMode: MemoryBoardLayoutMode;
 
   constructor(
     leaf: WorkspaceLeaf,
     private readonly storage: DiaryStorageService,
+    private readonly getSettings: () => EverydaySettings,
     private readonly openCapture: OpenCapture
   ) {
     super(leaf);
 
-    const start = DateService.getHalfYearStart();
+    this.layoutMode = this.getLayoutMode();
+    const start = this.getCurrentPeriodStart();
     this.startYear = start.year;
     this.startMonth = start.month;
   }
@@ -49,14 +51,14 @@ export class MemoryBoardView extends ItemView {
   }
 
   async goToPreviousPeriod(): Promise<void> {
-    const start = DateService.addMonths(this.startYear, this.startMonth, -this.monthCount);
+    const start = DateService.addMonths(this.startYear, this.startMonth, -this.getMonthCount());
     this.startYear = start.year;
     this.startMonth = start.month;
     await this.render();
   }
 
   async goToNextPeriod(): Promise<void> {
-    const start = DateService.addMonths(this.startYear, this.startMonth, this.monthCount);
+    const start = DateService.addMonths(this.startYear, this.startMonth, this.getMonthCount());
     this.startYear = start.year;
     this.startMonth = start.month;
     await this.render();
@@ -77,13 +79,15 @@ export class MemoryBoardView extends ItemView {
   }
 
   async goToCurrentPeriod(): Promise<void> {
-    const start = DateService.getHalfYearStart();
+    const start = this.getCurrentPeriodStart();
     this.startYear = start.year;
     this.startMonth = start.month;
     await this.render();
   }
 
   private async render(): Promise<void> {
+    this.syncLayoutMode();
+
     const container = this.containerEl.children[1] as HTMLElement;
     container.empty();
     container.addClass("Everyday-view");
@@ -178,7 +182,7 @@ export class MemoryBoardView extends ItemView {
 
   private renderGrid(container: HTMLElement, months: MemoryBoardMonth[]): void {
     const scroll = container.createDiv({ cls: "Everyday-memory-board-scroll" });
-    const grid = scroll.createDiv({ cls: "Everyday-memory-board-grid" });
+    const grid = scroll.createDiv({ cls: `Everyday-memory-board-grid is-${this.getLayoutMode()}` });
 
     for (const month of months) {
       const column = grid.createDiv({ cls: "Everyday-memory-month-column" });
@@ -228,6 +232,12 @@ export class MemoryBoardView extends ItemView {
           title: "点击编辑一句话，Alt + 点击打开日记"
         }
       });
+      const moodColor = this.getMoodColor(entry);
+
+      if (moodColor) {
+        row.style.setProperty("--Everyday-memory-mood-color", moodColor);
+      }
+
       row.addEventListener("click", (event) => {
         void this.handleDayClick(event, entry);
       });
@@ -271,7 +281,34 @@ export class MemoryBoardView extends ItemView {
   }
 
   private getDisplayedMonths(): YearMonth[] {
-    return DateService.getMonthRange(this.startYear, this.startMonth, this.monthCount);
+    return DateService.getMonthRange(this.startYear, this.startMonth, this.getMonthCount());
+  }
+
+  private getLayoutMode(): MemoryBoardLayoutMode {
+    return this.getSettings().memoryBoardLayoutMode === "quarter" ? "quarter" : "half-year";
+  }
+
+  private getMonthCount(): number {
+    return this.getLayoutMode() === "quarter" ? 3 : 6;
+  }
+
+  private getCurrentPeriodStart(): YearMonth {
+    return this.getLayoutMode() === "quarter"
+      ? DateService.getQuarterStart()
+      : DateService.getHalfYearStart();
+  }
+
+  private syncLayoutMode(): void {
+    const nextLayoutMode = this.getLayoutMode();
+
+    if (nextLayoutMode === this.layoutMode) {
+      return;
+    }
+
+    this.layoutMode = nextLayoutMode;
+    const start = this.getCurrentPeriodStart();
+    this.startYear = start.year;
+    this.startMonth = start.month;
   }
 
   private getDayRowClass(entry: DiaryEntry): string {
@@ -312,6 +349,16 @@ export class MemoryBoardView extends ItemView {
     return "";
   }
 
+  private getMoodColor(entry: DiaryEntry): string | undefined {
+    const mood = this.getSettings().moods.find((option) => (
+      option.id === entry.mood ||
+      option.label === entry.moodLabel ||
+      option.emoji === entry.moodEmoji
+    ));
+
+    return mood?.color;
+  }
+
   private async handleDayClick(event: MouseEvent, entry: DiaryEntry): Promise<void> {
     if (event.altKey) {
       try {
@@ -334,12 +381,12 @@ export class MemoryBoardView extends ItemView {
     const lastMonth = DateService.monthNumberLabel(last.year, last.month);
 
     if (first.year === last.year) {
-      const halfYearLabel = this.getHalfYearLabel(first.month, last.month);
+      const periodLabel = this.getPeriodLabel(first.month, last.month);
 
       return {
         primary: `${first.year} 年`,
-        secondary: halfYearLabel
-          ? `${firstMonth} - ${lastMonth} · ${halfYearLabel}`
+        secondary: periodLabel
+          ? `${firstMonth} - ${lastMonth} · ${periodLabel}`
           : `${firstMonth} - ${lastMonth}`
       };
     }
@@ -347,6 +394,21 @@ export class MemoryBoardView extends ItemView {
     return {
       primary: `${first.year} 年 ${firstMonth} - ${last.year} 年 ${lastMonth}`
     };
+  }
+
+  private getPeriodLabel(startMonth: number, endMonth: number): string | undefined {
+    return this.getLayoutMode() === "quarter"
+      ? this.getQuarterLabel(startMonth, endMonth)
+      : this.getHalfYearLabel(startMonth, endMonth);
+  }
+
+  private getQuarterLabel(startMonth: number, endMonth: number): string | undefined {
+    if (endMonth - startMonth !== 2) {
+      return undefined;
+    }
+
+    const quarter = Math.floor((startMonth - 1) / 3) + 1;
+    return startMonth === (quarter - 1) * 3 + 1 ? `第 ${quarter} 季度` : undefined;
   }
 
   private getHalfYearLabel(startMonth: number, endMonth: number): string | undefined {

@@ -57,6 +57,7 @@ export const DEFAULT_SETTINGS: EverydaySettings = {
   weekStart: "monday",
   openNoteAfterSave: false,
   viewMode: "list",
+  memoryBoardLayoutMode: "half-year",
   templateFilePath: "",
   moods: DEFAULT_MOODS
 };
