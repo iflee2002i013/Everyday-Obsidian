@@ -1,7 +1,10 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { AbstractInputSuggest, App, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_MOODS, DEFAULT_SETTINGS } from "./constants";
 import type EverydayPlugin from "./main";
+import type { TFile, TFolder } from "obsidian";
 import type { DiaryNameMode, EverydaySettings, MemoryBoardLayoutMode, MonthViewMode, MoodOption, WeekStart } from "./types";
+
+const MAX_PATH_SUGGESTIONS = 30;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -51,6 +54,80 @@ function readDiaryNameMode(raw: Record<string, unknown>): DiaryNameMode {
   return raw.diaryNameMode === "daily-notes" ? "daily-notes" : "custom";
 }
 
+function normalizePathQuery(query: string): string {
+  return query.trim().replace(/\\/g, "/").toLowerCase();
+}
+
+function sortPathSuggestions(paths: string[], query: string): string[] {
+  const normalizedQuery = normalizePathQuery(query);
+
+  return paths
+    .filter((path) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return path.toLowerCase().includes(normalizedQuery);
+    })
+    .sort((left, right) => {
+      const leftPath = left.toLowerCase();
+      const rightPath = right.toLowerCase();
+      const leftStartsWith = normalizedQuery ? leftPath.startsWith(normalizedQuery) : false;
+      const rightStartsWith = normalizedQuery ? rightPath.startsWith(normalizedQuery) : false;
+
+      if (leftStartsWith !== rightStartsWith) {
+        return leftStartsWith ? -1 : 1;
+      }
+
+      return left.localeCompare(right);
+    })
+    .slice(0, MAX_PATH_SUGGESTIONS);
+}
+
+abstract class VaultPathSuggest<T extends { path: string }> extends AbstractInputSuggest<T> {
+  constructor(
+    app: App,
+    textInputEl: HTMLInputElement,
+    private readonly onChoosePath: (path: string) => void | Promise<void>
+  ) {
+    super(app, textInputEl);
+    this.limit = MAX_PATH_SUGGESTIONS;
+  }
+
+  protected async getSuggestions(query: string): Promise<T[]> {
+    const items = this.getItems();
+    const sortedPaths = sortPathSuggestions(items.map((item) => item.path), query);
+    const itemByPath = new Map(items.map((item) => [item.path, item]));
+
+    return sortedPaths
+      .map((path) => itemByPath.get(path))
+      .filter((item): item is T => item !== undefined);
+  }
+
+  renderSuggestion(value: T, el: HTMLElement): void {
+    el.setText(value.path);
+  }
+
+  selectSuggestion(value: T): void {
+    this.setValue(value.path);
+    void this.onChoosePath(value.path);
+  }
+
+  protected abstract getItems(): T[];
+}
+
+class FolderPathSuggest extends VaultPathSuggest<TFolder> {
+  protected getItems(): TFolder[] {
+    return this.app.vault.getAllFolders(false);
+  }
+}
+
+class MarkdownFilePathSuggest extends VaultPathSuggest<TFile> {
+  protected getItems(): TFile[] {
+    return this.app.vault.getMarkdownFiles();
+  }
+}
+
 export function normalizeSettings(data: unknown): EverydaySettings {
   const raw = isRecord(data) ? data : {};
   const moods = Array.isArray(raw.moods) && raw.moods.every(isMoodOption)
@@ -90,13 +167,19 @@ export class EverydaySettingTab extends PluginSettingTab {
       .setName("日记保存目录")
       .setDesc("例如 Diary 或 日记。保存时会自动创建缺失目录。")
       .addText((text) => {
+        new FolderPathSuggest(this.app, text.inputEl, async (path) => {
+          this.plugin.settings.diaryFolder = path || DEFAULT_SETTINGS.diaryFolder;
+          await this.plugin.saveSettings();
+          await this.plugin.refreshOpenEverydayViews();
+        });
+
         text
           .setPlaceholder(DEFAULT_SETTINGS.diaryFolder)
           .setValue(this.plugin.settings.diaryFolder)
           .onChange(async (value) => {
             this.plugin.settings.diaryFolder = value.trim() || DEFAULT_SETTINGS.diaryFolder;
             await this.plugin.saveSettings();
-            await this.plugin.refreshMonthViews();
+            await this.plugin.refreshOpenEverydayViews();
           });
       });
 
@@ -109,7 +192,7 @@ export class EverydaySettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.useYearSubfolders = value;
             await this.plugin.saveSettings();
-            await this.plugin.refreshMonthViews();
+            await this.plugin.refreshOpenEverydayViews();
           });
       });
 
@@ -124,7 +207,7 @@ export class EverydaySettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.diaryNameMode = value === "daily-notes" ? "daily-notes" : "custom";
             await this.plugin.saveSettings();
-            await this.plugin.refreshMonthViews();
+            await this.plugin.refreshOpenEverydayViews();
             this.display();
           });
       });
@@ -140,7 +223,7 @@ export class EverydaySettingTab extends PluginSettingTab {
             .onChange(async (value) => {
               this.plugin.settings.diaryNameFormat = value.trim() || DEFAULT_SETTINGS.diaryNameFormat;
               await this.plugin.saveSettings();
-              await this.plugin.refreshMonthViews();
+              await this.plugin.refreshOpenEverydayViews();
             });
         });
     }
@@ -222,6 +305,11 @@ export class EverydaySettingTab extends PluginSettingTab {
       .setName("日记模板文件")
       .setDesc("可选。填写 vault 内 Markdown 模板路径，例如 Templates/daily.md。")
       .addText((text) => {
+        new MarkdownFilePathSuggest(this.app, text.inputEl, async (path) => {
+          this.plugin.settings.templateFilePath = path;
+          await this.plugin.saveSettings();
+        });
+
         text
           .setPlaceholder("Templates/daily.md")
           .setValue(this.plugin.settings.templateFilePath)

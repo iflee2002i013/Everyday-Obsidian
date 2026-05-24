@@ -67,7 +67,7 @@ export class MonthMemoryView extends ItemView {
   }
 
   async render(): Promise<void> {
-    const container = this.containerEl.children[1] as HTMLElement;
+    const container = this.contentEl;
     container.empty();
     container.addClass("Everyday-view");
 
@@ -314,7 +314,12 @@ export class MonthMemoryView extends ItemView {
 
   private async handlePrimaryAction(entry: DiaryEntry): Promise<void> {
     if (entry.exists) {
-      await this.storage.openDiaryFile(entry.date);
+      try {
+        await this.storage.openDiaryFile(entry.date);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        new Notice(`Diary open failed: ${message}`);
+      }
       return;
     }
 

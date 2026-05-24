@@ -24,7 +24,7 @@ export class QuickCaptureModal extends Modal {
 
   async onOpen(): Promise<void> {
     this.contentEl.addClass("Everyday-capture-modal");
-    await this.loadEntry(this.selectedDate);
+    await this.loadEntrySafely(this.selectedDate);
     this.render();
   }
 
@@ -52,7 +52,7 @@ export class QuickCaptureModal extends Modal {
           }
 
           this.selectedDate = value;
-          await this.loadEntry(value);
+          await this.loadEntrySafely(value);
           this.render();
         });
       });
@@ -123,6 +123,22 @@ export class QuickCaptureModal extends Modal {
     this.loadedEntry = await this.storage.getEntry(date);
     this.summary = this.loadedEntry.summary ?? "";
     this.selectedMoodId = this.loadedEntry.mood ?? this.settings.defaultMoodId;
+  }
+
+  private async loadEntrySafely(date: string): Promise<void> {
+    try {
+      await this.loadEntry(date);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      new Notice(`Diary load failed: ${message}`);
+      this.loadedEntry = {
+        date,
+        filePath: "",
+        exists: false
+      };
+      this.summary = "";
+      this.selectedMoodId = this.settings.defaultMoodId;
+    }
   }
 
   private async save(openAfterSave: boolean): Promise<void> {

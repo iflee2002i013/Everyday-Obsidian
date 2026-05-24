@@ -168,19 +168,6 @@ export class DiaryStorageService {
 
   private async writeFrontmatter(file: TFile, _date: string, summary: string, mood: MoodOption): Promise<void> {
     await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-      const shouldRemoveLegacyFields = hasLegacyPluginData(frontmatter);
-
-      delete frontmatter.Everyday;
-      delete frontmatter.mood;
-      delete frontmatter.mood_score;
-      delete frontmatter.summery;
-
-      if (shouldRemoveLegacyFields) {
-        delete frontmatter.date;
-        delete frontmatter.created_at;
-        delete frontmatter.updated_at;
-      }
-
       frontmatter.mood_label = mood.label;
       frontmatter.mood_emoji = mood.emoji;
       frontmatter.summary = summary;

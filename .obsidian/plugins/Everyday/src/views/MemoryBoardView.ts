@@ -88,7 +88,7 @@ export class MemoryBoardView extends ItemView {
   private async render(): Promise<void> {
     this.syncLayoutMode();
 
-    const container = this.containerEl.children[1] as HTMLElement;
+    const container = this.contentEl;
     container.empty();
     container.addClass("Everyday-view");
     container.addClass("Everyday-memory-board");

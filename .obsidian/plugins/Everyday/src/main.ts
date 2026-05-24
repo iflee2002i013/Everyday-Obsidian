@@ -136,7 +136,11 @@ export default class EverydayPlugin extends Plugin {
 
     for (const leaf of leaves) {
       if (leaf.view instanceof MonthMemoryView) {
-        await leaf.view.refresh();
+        try {
+          await leaf.view.refresh();
+        } catch (error) {
+          console.error("Everyday month view refresh failed", error);
+        }
       }
     }
   }
@@ -146,7 +150,11 @@ export default class EverydayPlugin extends Plugin {
 
     for (const leaf of leaves) {
       if (leaf.view instanceof MemoryBoardView) {
-        await leaf.view.refresh();
+        try {
+          await leaf.view.refresh();
+        } catch (error) {
+          console.error("Everyday Memory Board refresh failed", error);
+        }
       }
     }
   }
@@ -201,7 +209,9 @@ export default class EverydayPlugin extends Plugin {
 
     this.refreshTimer = window.setTimeout(() => {
       this.refreshTimer = undefined;
-      void this.refreshOpenEverydayViews();
+      void this.refreshOpenEverydayViews().catch((error) => {
+        console.error("Everyday scheduled refresh failed", error);
+      });
     }, 300);
   }
 }

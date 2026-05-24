@@ -1,17 +1,26 @@
 import { moment, normalizePath } from "obsidian";
 import type { DailyNotesSettings, EverydaySettings } from "../types";
 
-function cleanPathSegment(path: string): string {
-  return path
+function cleanPathSegment(path: string, context: string): string {
+  const parts = path
     .replace(/\\/g, "/")
     .split("/")
     .map((part) => part.trim())
-    .filter(Boolean)
-    .join("/");
+    .filter(Boolean);
+
+  assertSafeVaultPathParts(parts, context);
+
+  return parts.join("/");
+}
+
+function assertSafeVaultPathParts(parts: string[], context: string): void {
+  if (parts.some((part) => part === "." || part === "..")) {
+    throw new Error(`Unsafe ${context}: "." and ".." path segments are not allowed.`);
+  }
 }
 
 export function getDiaryFolderPath(date: string, settings: EverydaySettings): string {
-  const baseFolder = cleanPathSegment(settings.diaryFolder) || "Diary";
+  const baseFolder = cleanPathSegment(settings.diaryFolder, "diary folder") || "Diary";
   const year = date.slice(0, 4);
   const folder = settings.useYearSubfolders ? `${baseFolder}/${year}` : baseFolder;
   return normalizePath(folder);
@@ -32,12 +41,15 @@ export function getDiaryFilePath(
     return getDailyNotesFilePath(date, settings, dailyNotesSettings);
   }
 
-  const filename = formatDiaryName(date, settings.diaryNameFormat || "YYYY-MM-DD");
+  const filename = cleanPathSegment(
+    ensureMarkdownExtension(formatDiaryName(date, settings.diaryNameFormat || "YYYY-MM-DD")),
+    "diary filename format"
+  );
   return normalizePath(`${getDiaryFolderPath(date, settings)}/${ensureMarkdownExtension(filename)}`);
 }
 
 export function normalizeVaultPath(path: string): string {
-  return normalizePath(cleanPathSegment(path));
+  return normalizePath(cleanPathSegment(path, "vault path"));
 }
 
 function getDailyNotesFilePath(
@@ -48,9 +60,12 @@ function getDailyNotesFilePath(
   const format = dailyNotesSettings?.format?.trim() || settings.diaryNameFormat || "YYYY-MM-DD";
   const configuredFolder = dailyNotesSettings?.folder?.trim();
   const folder = configuredFolder !== undefined
-    ? cleanPathSegment(configuredFolder)
+    ? cleanPathSegment(configuredFolder, "Daily Notes folder")
     : getDiaryFolderPath(date, settings);
-  const filename = ensureMarkdownExtension(formatDiaryName(date, format));
+  const filename = cleanPathSegment(
+    ensureMarkdownExtension(formatDiaryName(date, format)),
+    "Daily Notes format"
+  );
 
   return normalizePath(folder ? `${folder}/${filename}` : filename);
 }
