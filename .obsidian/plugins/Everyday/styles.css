@@ -447,6 +447,7 @@
     flex-direction: column;
   }
 
+  .Everyday-header-actions,
   .Everyday-memory-board-nav,
   .Everyday-memory-board-actions {
     flex: 1 1 auto;

@@ -7,6 +7,11 @@ import type { DiaryEntry, EverydaySettings, MonthViewMode } from "../types";
 type OpenCapture = (date?: string) => void;
 type ChangeViewMode = (mode: MonthViewMode) => void | Promise<void>;
 
+interface RenderOptions {
+  scrollToToday?: boolean;
+  behavior?: ScrollBehavior;
+}
+
 export class MonthMemoryView extends ItemView {
   private currentYear: number;
   private currentMonth: number;
@@ -38,7 +43,7 @@ export class MonthMemoryView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    await this.render();
+    await this.render({ scrollToToday: true, behavior: "auto" });
   }
 
   async refresh(): Promise<void> {
@@ -63,10 +68,10 @@ export class MonthMemoryView extends ItemView {
     const today = new Date();
     this.currentYear = today.getFullYear();
     this.currentMonth = today.getMonth() + 1;
-    await this.render();
+    await this.render({ scrollToToday: true, behavior: "smooth" });
   }
 
-  async render(): Promise<void> {
+  async render(options: RenderOptions = {}): Promise<void> {
     const container = this.contentEl;
     container.empty();
     container.addClass("Everyday-view");
@@ -87,6 +92,10 @@ export class MonthMemoryView extends ItemView {
       } else {
         this.renderList(body, entries);
       }
+
+      if (options.scrollToToday) {
+        this.scrollTodayIntoView(options.behavior ?? "auto");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       body.createDiv({
@@ -95,6 +104,18 @@ export class MonthMemoryView extends ItemView {
       });
       new Notice(`Everyday load failed: ${message}`);
     }
+  }
+
+  private scrollTodayIntoView(behavior: ScrollBehavior): void {
+    window.requestAnimationFrame(() => {
+      const todayEl = this.contentEl.querySelector<HTMLElement>(".is-today");
+
+      todayEl?.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+        behavior
+      });
+    });
   }
 
   private renderHeader(container: HTMLElement): void {
