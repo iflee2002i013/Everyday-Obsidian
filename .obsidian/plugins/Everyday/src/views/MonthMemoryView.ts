@@ -15,6 +15,7 @@ interface RenderOptions {
 export class MonthMemoryView extends ItemView {
   private currentYear: number;
   private currentMonth: number;
+  private headerResizeObserver: ResizeObserver | undefined;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -44,6 +45,10 @@ export class MonthMemoryView extends ItemView {
 
   async onOpen(): Promise<void> {
     await this.render({ scrollToToday: true, behavior: "auto" });
+  }
+
+  async onClose(): Promise<void> {
+    this.disconnectHeaderResizeObserver();
   }
 
   async refresh(): Promise<void> {
@@ -118,6 +123,23 @@ export class MonthMemoryView extends ItemView {
     });
   }
 
+  private observeHeaderWrap(header: HTMLElement, nav: HTMLElement, actions: HTMLElement): void {
+    this.disconnectHeaderResizeObserver();
+
+    const updateHeaderWrapClass = () => {
+      header.classList.toggle("is-actions-wrapped", actions.offsetTop > nav.offsetTop);
+    };
+
+    window.requestAnimationFrame(updateHeaderWrapClass);
+    this.headerResizeObserver = new ResizeObserver(updateHeaderWrapClass);
+    this.headerResizeObserver.observe(header);
+  }
+
+  private disconnectHeaderResizeObserver(): void {
+    this.headerResizeObserver?.disconnect();
+    this.headerResizeObserver = undefined;
+  }
+
   private renderHeader(container: HTMLElement): void {
     const header = container.createDiv({ cls: "Everyday-header" });
     const nav = header.createDiv({ cls: "Everyday-nav" });
@@ -158,6 +180,8 @@ export class MonthMemoryView extends ItemView {
       text: "快速记录"
     });
     captureButton.addEventListener("click", () => this.openCapture());
+
+    this.observeHeaderWrap(header, nav, actions);
   }
 
   private renderModeToggleButton(container: HTMLElement): void {
