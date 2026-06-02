@@ -4,7 +4,7 @@ import { QuickCaptureModal } from "./modals/QuickCaptureModal";
 import { DateService } from "./services/DateService";
 import { DiaryStorageService } from "./services/DiaryStorageService";
 import { EverydaySettingTab, normalizeSettings } from "./settings";
-import type { DiaryEntry, EverydaySettings, MonthViewMode } from "./types";
+import type { DiaryEntry, EverydaySettings } from "./types";
 import { MemoryBoardView } from "./views/MemoryBoardView";
 import { MonthMemoryView } from "./views/MonthMemoryView";
 
@@ -22,9 +22,8 @@ export default class EverydayPlugin extends Plugin {
       (leaf) => new MonthMemoryView(
         leaf,
         this.storage,
-        () => this.settings,
         (date) => this.openQuickCapture(date),
-        (mode) => this.changeMonthViewMode(mode)
+        () => this.openMemoryBoard()
       )
     );
 
@@ -162,12 +161,6 @@ export default class EverydayPlugin extends Plugin {
   async refreshOpenEverydayViews(): Promise<void> {
     await this.refreshMonthViews();
     await this.refreshMemoryBoardViews();
-  }
-
-  async changeMonthViewMode(mode: MonthViewMode): Promise<void> {
-    this.settings.viewMode = mode;
-    await this.saveSettings();
-    await this.refreshMonthViews();
   }
 
   private async handleEntrySaved(_entry: DiaryEntry): Promise<void> {

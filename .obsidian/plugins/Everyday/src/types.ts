@@ -6,10 +6,6 @@ export interface MoodOption {
   color: string;
 }
 
-export type WeekStart = "monday" | "sunday";
-
-export type MonthViewMode = "list" | "calendar";
-
 export type MemoryBoardLayoutMode = "half-year" | "quarter";
 
 export type DiaryNameMode = "daily-notes" | "custom";
@@ -25,9 +21,7 @@ export interface EverydaySettings {
   diaryNameMode: DiaryNameMode;
   diaryNameFormat: string;
   defaultMoodId: string;
-  weekStart: WeekStart;
   openNoteAfterSave: boolean;
-  viewMode: MonthViewMode;
   memoryBoardLayoutMode: MemoryBoardLayoutMode;
   templateFilePath: string;
   moods: MoodOption[];

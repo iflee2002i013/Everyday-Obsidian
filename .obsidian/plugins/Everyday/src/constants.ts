@@ -54,9 +54,7 @@ export const DEFAULT_SETTINGS: EverydaySettings = {
   diaryNameMode: "custom",
   diaryNameFormat: "YYYY-MM-DD",
   defaultMoodId: "normal",
-  weekStart: "monday",
   openNoteAfterSave: false,
-  viewMode: "list",
   memoryBoardLayoutMode: "half-year",
   templateFilePath: "",
   moods: DEFAULT_MOODS

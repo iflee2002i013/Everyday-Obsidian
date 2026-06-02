@@ -2,10 +2,10 @@ import { ItemView, Notice, WorkspaceLeaf, setIcon } from "obsidian";
 import { VIEW_TYPE_MONTH_MEMORY } from "../constants";
 import { DateService } from "../services/DateService";
 import { DiaryStorageService } from "../services/DiaryStorageService";
-import type { DiaryEntry, EverydaySettings, MonthViewMode } from "../types";
+import type { DiaryEntry } from "../types";
 
 type OpenCapture = (date?: string) => void;
-type ChangeViewMode = (mode: MonthViewMode) => void | Promise<void>;
+type OpenMemoryBoard = () => void | Promise<void>;
 
 interface RenderOptions {
   scrollToToday?: boolean;
@@ -20,9 +20,8 @@ export class MonthMemoryView extends ItemView {
   constructor(
     leaf: WorkspaceLeaf,
     private readonly storage: DiaryStorageService,
-    private readonly getSettings: () => EverydaySettings,
     private readonly openCapture: OpenCapture,
-    private readonly changeViewMode: ChangeViewMode
+    private readonly openMemoryBoard: OpenMemoryBoard
   ) {
     super(leaf);
 
@@ -92,11 +91,7 @@ export class MonthMemoryView extends ItemView {
     try {
       const entries = await this.storage.getMonthEntries(this.currentYear, this.currentMonth);
 
-      if (this.getSettings().viewMode === "calendar") {
-        this.renderCalendar(body, entries);
-      } else {
-        this.renderList(body, entries);
-      }
+      this.renderList(body, entries);
 
       if (options.scrollToToday) {
         this.scrollTodayIntoView(options.behavior ?? "auto");
@@ -168,7 +163,7 @@ export class MonthMemoryView extends ItemView {
     });
 
     const actions = header.createDiv({ cls: "Everyday-header-actions" });
-    this.renderModeToggleButton(actions);
+    this.renderMemoryBoardButton(actions);
 
     const todayButton = actions.createEl("button", { text: "今天" });
     todayButton.addEventListener("click", () => {
@@ -184,19 +179,16 @@ export class MonthMemoryView extends ItemView {
     this.observeHeaderWrap(header, nav, actions);
   }
 
-  private renderModeToggleButton(container: HTMLElement): void {
-    const currentMode = this.getSettings().viewMode;
-    const nextMode: MonthViewMode = currentMode === "calendar" ? "list" : "calendar";
-    const label = currentMode === "calendar" ? "列表" : "日历";
+  private renderMemoryBoardButton(container: HTMLElement): void {
     const button = container.createEl("button", {
-      cls: "Everyday-view-mode-toggle",
-      text: label,
+      cls: "Everyday-memory-board-open",
+      text: "Memory Board",
       attr: {
-        "aria-label": `切换到${label}模式`
+        "aria-label": "打开 Memory Board"
       }
     });
     button.addEventListener("click", async () => {
-      await this.changeViewMode(nextMode);
+      await this.openMemoryBoard();
     });
   }
 
@@ -254,81 +246,8 @@ export class MonthMemoryView extends ItemView {
     }
   }
 
-  private renderCalendar(container: HTMLElement, entries: DiaryEntry[]): void {
-    const settings = this.getSettings();
-    const weekdays = settings.weekStart === "sunday"
-      ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const calendar = container.createDiv({ cls: "Everyday-calendar" });
-    const header = calendar.createDiv({ cls: "Everyday-calendar-weekdays" });
-
-    for (const weekday of weekdays) {
-      header.createDiv({
-        cls: "Everyday-calendar-weekday",
-        text: weekday
-      });
-    }
-
-    const grid = calendar.createDiv({ cls: "Everyday-calendar-grid" });
-    const firstDay = new Date(this.currentYear, this.currentMonth - 1, 1).getDay();
-    const offset = settings.weekStart === "sunday" ? firstDay : (firstDay + 6) % 7;
-
-    for (let index = 0; index < offset; index += 1) {
-      grid.createDiv({ cls: "Everyday-calendar-cell is-blank" });
-    }
-
-    for (const entry of entries) {
-      const cell = grid.createDiv({
-        cls: this.getCalendarCellClass(entry),
-        attr: {
-          role: "button",
-          tabindex: "0",
-          title: this.getPrimaryActionTitle(entry)
-        }
-      });
-      cell.addEventListener("click", () => {
-        void this.handlePrimaryAction(entry);
-      });
-      cell.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          void this.handlePrimaryAction(entry);
-        }
-      });
-
-      const top = cell.createDiv({ cls: "Everyday-calendar-cell-top" });
-      top.createSpan({
-        cls: "Everyday-calendar-day",
-        text: String(Number(DateService.dayOfMonth(entry.date)))
-      });
-      top.createSpan({
-        cls: "Everyday-calendar-mood",
-        text: entry.moodEmoji ?? ""
-      });
-
-      cell.createDiv({
-        cls: "Everyday-calendar-summary",
-        text: this.truncate(this.getEntrySummary(entry), 20)
-      });
-    }
-  }
-
   private getDayRowClass(entry: DiaryEntry): string {
     const classes = ["Everyday-day-row"];
-
-    if (!entry.exists || !entry.hasEverydayData) {
-      classes.push("is-empty");
-    }
-
-    if (DateService.isToday(entry.date)) {
-      classes.push("is-today");
-    }
-
-    return classes.join(" ");
-  }
-
-  private getCalendarCellClass(entry: DiaryEntry): string {
-    const classes = ["Everyday-calendar-cell"];
 
     if (!entry.exists || !entry.hasEverydayData) {
       classes.push("is-empty");
@@ -351,10 +270,6 @@ export class MonthMemoryView extends ItemView {
     }
 
     return "未记录";
-  }
-
-  private truncate(value: string, maxLength: number): string {
-    return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
   }
 
   private async handlePrimaryAction(entry: DiaryEntry): Promise<void> {

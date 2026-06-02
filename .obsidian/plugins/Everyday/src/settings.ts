@@ -2,7 +2,7 @@ import { AbstractInputSuggest, App, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_MOODS, DEFAULT_SETTINGS } from "./constants";
 import type EverydayPlugin from "./main";
 import type { TFile, TFolder } from "obsidian";
-import type { DiaryNameMode, EverydaySettings, MemoryBoardLayoutMode, MonthViewMode, MoodOption, WeekStart } from "./types";
+import type { DiaryNameMode, EverydaySettings, MemoryBoardLayoutMode, MoodOption } from "./types";
 
 const MAX_PATH_SUGGESTIONS = 30;
 
@@ -36,14 +36,6 @@ function readString(raw: Record<string, unknown>, key: string, fallback: string)
 function readBoolean(raw: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const value = raw[key];
   return typeof value === "boolean" ? value : fallback;
-}
-
-function readWeekStart(raw: Record<string, unknown>): WeekStart {
-  return raw.weekStart === "sunday" ? "sunday" : "monday";
-}
-
-function readViewMode(raw: Record<string, unknown>): MonthViewMode {
-  return raw.viewMode === "calendar" ? "calendar" : "list";
 }
 
 function readMemoryBoardLayoutMode(raw: Record<string, unknown>): MemoryBoardLayoutMode {
@@ -142,9 +134,7 @@ export function normalizeSettings(data: unknown): EverydaySettings {
     diaryNameMode: readDiaryNameMode(raw),
     diaryNameFormat: readString(raw, "diaryNameFormat", DEFAULT_SETTINGS.diaryNameFormat).trim() || DEFAULT_SETTINGS.diaryNameFormat,
     defaultMoodId: moods.some((mood) => mood.id === defaultMoodId) ? defaultMoodId : DEFAULT_SETTINGS.defaultMoodId,
-    weekStart: readWeekStart(raw),
     openNoteAfterSave: readBoolean(raw, "openNoteAfterSave", DEFAULT_SETTINGS.openNoteAfterSave),
-    viewMode: readViewMode(raw),
     memoryBoardLayoutMode: readMemoryBoardLayoutMode(raw),
     templateFilePath: readString(raw, "templateFilePath", DEFAULT_SETTINGS.templateFilePath).trim(),
     moods
@@ -245,21 +235,6 @@ export class EverydaySettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("月视图默认模式")
-      .setDesc("列表更接近手帐；日历以格子展示每月概览。")
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption("list", "列表")
-          .addOption("calendar", "日历")
-          .setValue(this.plugin.settings.viewMode)
-          .onChange(async (value) => {
-            this.plugin.settings.viewMode = value === "calendar" ? "calendar" : "list";
-            await this.plugin.saveSettings();
-            await this.plugin.refreshMonthViews();
-          });
-      });
-
-    new Setting(containerEl)
       .setName("Memory Board 排版模式")
       .setDesc("半年视图显示 6 个月；季度视图每页显示 3 个月。")
       .addDropdown((dropdown) => {
@@ -271,21 +246,6 @@ export class EverydaySettingTab extends PluginSettingTab {
             this.plugin.settings.memoryBoardLayoutMode = value === "quarter" ? "quarter" : "half-year";
             await this.plugin.saveSettings();
             await this.plugin.refreshMemoryBoardViews();
-          });
-      });
-
-    new Setting(containerEl)
-      .setName("每周开始日")
-      .setDesc("影响日历模式的列顺序。")
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption("monday", "周一")
-          .addOption("sunday", "周日")
-          .setValue(this.plugin.settings.weekStart)
-          .onChange(async (value) => {
-            this.plugin.settings.weekStart = value === "sunday" ? "sunday" : "monday";
-            await this.plugin.saveSettings();
-            await this.plugin.refreshMonthViews();
           });
       });
 
